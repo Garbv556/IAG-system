@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IAG Central - Simulação de Agentes Animais</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 1.5rem;
+            border-bottom: 1px solid #334155;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; background: linear-gradient(to right, #60a5fa, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .subtitle { color: var(--text-secondary); font-size: 0.9rem; }
+
+        .controls {
+            padding: 1rem;
+            background: #1e293b;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #334155;
+        }
+
+        input[type="text"] {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: white;
+            width: 300px;
+            font-size: 1rem;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .btn-start { background: var(--success); color: white; }
+        .btn-start:hover { background: #059669; transform: translateY(-2px); }
+        .btn-stop { background: var(--danger); color: white; }
+        .btn-stop:hover { background: #dc2626; transform: translateY(-2px); }
+        .btn-reset { background: var(--warning); color: #0f172a; }
+        .btn-reset:hover { background: #d97706; transform: translateY(-2px); }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 1rem;
+            padding: 1rem;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .agent-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            border: 1px solid #334155;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .agent-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            border-color: var(--accent);
+        }
+
+        .agent-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+        .agent-name { font-weight: bold; font-size: 1.1rem; margin-bottom: 0.25rem; }
+        .agent-type { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: #0f172a;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+            width: 0%;
+            transition: width 0.5s ease-out;
+        }
+
+        .agent-status {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .chat-panel {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 1rem;
+            background: #0f172a;
+            border-bottom: 1px solid #334155;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .message {
+            background: #0f172a;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            border-left: 3px solid var(--accent);
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .message.system { border-left-color: var(--success); background: #064e3b; }
+        .message.expert { border-left-color: var(--warning); background: #451a03; }
+
+        .msg-header { display: flex; justify-content: space-between; margin-bottom: 0.25rem; font-size: 0.75rem; color: var(--text-secondary); }
+        .msg-agent { font-weight: bold; color: var(--text-primary); }
+        .msg-time { opacity: 0.7; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Scrollbar customizada */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #64748b;
+            margin-right: 0.5rem;
+        }
+        .status-indicator.active { background: var(--success); box-shadow: 0 0 8px var(--success); animation: pulse 1.5s infinite; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        .topic-display {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--accent);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🤖 IAG Central - Rede Neural de Agentes Animais</h1>
+        <p class="subtitle">Sistema de Aprendizado Colaborativo Distribuído (24 Agentes)</p>
+    </header>
+
+    <div class="controls">
+        <input type="text" id="topicInput" placeholder="Ex: Python, Mandarim, Quantum Physics..." value="Programação Python">
+        <button class="btn-start" onclick="startLearning()">▶ Iniciar Aprendizado</button>
+        <button class="btn-stop" onclick="stopLearning()">⏸ Pausar</button>
+        <button class="btn-reset" onclick="resetSimulation()">🔄 Resetar</button>
+    </div>
+
+    <div class="main-container">
+        <div class="agents-grid" id="agentsGrid">
+            <!-- Cards gerados via JS -->
+        </div>
+
+        <div class="chat-panel">
+            <div class="chat-header">
+                <span class="status-indicator" id="systemStatus"></span>
+                Log de Comunicação em Tempo Real
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message system">
+                    <div class="msg-header">
+                        <span class="msg-agent">🤖 IAG Central</span>
+                        <span class="msg-time">--:--:--</span>
+                    </div>
+                    <div class="msg-text">Aguardando comando para iniciar protocolo de aprendizado...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const agentsGrid = document.getElementById('agentsGrid');
+        const chatMessages = document.getElementById('chatMessages');
+        const systemStatus = document.getElementById('systemStatus');
+        let eventSource = null;
+        let isRunning = false;
+
+        // Inicializar Grid
+        function initGrid() {
+            const animals = [
+                {id: 'leao', name: 'Leão', icon: '🦁', type: 'Líder'},
+                {id: 'tigre', name: 'Tigre', icon: '🐅', type: 'Solitário'},
+                {id: 'elefante', name: 'Elefante', icon: '🐘', type: 'Inteligente'},
+                {id: 'hipopotamo', name: 'Hipopótamo', icon: '🦛', type: 'Agressivo'},
+                {id: 'polvo', name: 'Polvo', icon: '🐙', type: 'Estratégico'},
+                {id: 'lobo', name: 'Lobo', icon: '🐺', type: 'Estrategista'},
+                {id: 'tubarao', name: 'Tubarão', icon: '🦈', type: 'Predador'},
+                {id: 'orca', name: 'Orca', icon: '🐋', type: 'Mestre Tático'},
+                {id: 'rinoceronte', name: 'Rinoceronte', icon: '🦏', type: 'Tanque'},
+                {id: 'falcao', name: 'Falcão', icon: '🦅', type: 'Veloz'},
+                {id: 'crocodilo', name: 'Crocodilo', icon: '🐊', type: 'Emboscada'},
+                {id: 'cavalo', name: 'Cavalo', icon: '🐎', type: 'Manada'},
+                {id: 'gorila', name: 'Gorila', icon: '🦍', type: 'Força'},
+                {id: 'ovelha', name: 'Ovelha', icon: '🐑', type: 'Rebanho'},
+                {id: 'carneiro', name: 'Carneiro', icon: '🐏', type: 'Impacto'},
+                {id: 'coelho', name: 'Coelho', icon: '🐇', type: 'Fuga'},
+                {id: 'alce', name: 'Alce', icon: '🦌', type: 'Selvagem'},
+                {id: 'marlin', name: 'Marlin', icon: '🐟', type: 'Velocidade'},
+                {id: 'urso_pardo', name: 'Urso Pardo', icon: '🐻', type: 'Dominante'},
+                {id: 'leopardo', name: 'Leopardo', icon: '🐆', type: 'Furtivo'},
+                {id: 'canguru', name: 'Canguru', icon: '🦘', type: 'Mobilidade'},
+                {id: 'bisao', name: 'Bisão', icon: '🦬', type: 'Resistência'}
+            ];
+
+            agentsGrid.innerHTML = animals.map(a => `
+                <div class="agent-card" id="card-${a.id}">
+                    <div class="agent-icon">${a.icon}</div>
+                    <div class="agent-name">${a.name}</div>
+                    <div class="agent-type">${a.type}</div>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="prog-${a.id}"></div>
+                    </div>
+                    <div class="agent-status" id="status-${a.id}">Aguardando</div>
+                </div>
+            `).join('');
+        }
+
+        function connectSSE() {
+            if (eventSource) eventSource.close();
+            
+            eventSource = new EventSource('/stream');
+            
+            eventSource.addEventListener('update', (event) => {
+                const data = JSON.parse(event.data);
+                updateAgents(data.agents);
+                updateChat(data.chat);
+                
+                if (data.active) {
+                    systemStatus.classList.add('active');
+                    document.querySelector('.topic-display')?.remove();
+                    if (!document.getElementById('currentTopic')) {
+                        const topicEl = document.createElement('div');
+                        topicEl.id = 'currentTopic';
+                        topicEl.className = 'topic-display';
+                        topicEl.textContent = `📚 Aprendendo: ${data.topic}`;
+                        document.querySelector('.chat-header').appendChild(topicEl);
+                    }
+                } else {
+                    systemStatus.classList.remove('active');
+                }
+            });
+
+            eventSource.onerror = () => {
+                console.log("Reconectando...");
+                eventSource.close();
+                setTimeout(connectSSE, 3000);
+            };
+        }
+
+        function updateAgents(agentsState) {
+            for (const [id, state] of Object.entries(agentsState)) {
+                const bar = document.getElementById(`prog-${id}`);
+                const status = document.getElementById(`status-${id}`);
+                if (bar) bar.style.width = `${state.progress}%`;
+                if (status) {
+                    status.textContent = `${state.status} (${Math.round(state.progress)}%)`;
+                    if (state.progress >= 100) status.style.color = '#10b981';
+                    else if (state.progress >= 70) status.style.color = '#3b82f6';
+                    else status.style.color = '#94a3b8';
+                }
+            }
+        }
+
+        function updateChat(messages) {
+            if (messages.length === 0) return;
+            
+            const lastMsg = chatMessages.querySelector('.message');
+            if (lastMsg && messages[0]) {
+                const lastText = lastMsg.querySelector('.msg-text').textContent;
+                if (lastText === messages[0].text) return;
+            }
+
+            const msg = messages[0];
+            const div = document.createElement('div');
+            div.className = `message ${msg.agent === 'IAG Central' ? 'system' : (msg.progress > 80 ? 'expert' : '')}`;
+            div.innerHTML = `
+                <div class="msg-header">
+                    <span class="msg-agent">${msg.icon} ${msg.agent}</span>
+                    <span class="msg-time">${msg.time}</span>
+                </div>
+                <div class="msg-text">${msg.text}</div>
+            `;
+            
+            chatMessages.insertBefore(div, chatMessages.firstChild);
+            
+            while (chatMessages.children.length > 20) {
+                chatMessages.removeChild(chatMessages.lastChild);
+            }
+        }
+
+        async function startLearning() {
+            if (isRunning) return;
+            const topic = document.getElementById('topicInput').value || "Conhecimento Geral";
+            try {
+                const res = await fetch(`/start/${encodeURIComponent(topic)}`, { method: 'POST' });
+                if (res.ok) {
+                    isRunning = true;
+                    connectSSE();
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function stopLearning() {
+            try {
+                const res = await fetch('/stop', { method: 'POST' });
+                if (res.ok) isRunning = false;
+            } catch (e) { console.error(e); }
+        }
+
+        function resetSimulation() {
+            location.reload();
+        }
+
+        initGrid();
+        connectSSE();
+    </script>
+</body>
+</html>

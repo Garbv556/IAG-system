@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🦁 Sistema de Agentes Animais - IAG</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .control-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .control-panel h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .agent-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .agent-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .agent-card.learning {
+            animation: pulse 1.5s infinite;
+            border: 3px solid #667eea;
+        }
+
+        .agent-card.collaborating {
+            border: 3px solid #f59e0b;
+            background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3); }
+            50% { box-shadow: 0 5px 25px rgba(102, 126, 234, 0.6); }
+        }
+
+        .agent-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .agent-emoji {
+            font-size: 3em;
+            line-height: 1;
+        }
+
+        .agent-info h3 {
+            color: #333;
+            font-size: 1.3em;
+            margin-bottom: 5px;
+        }
+
+        .agent-context {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .context-solo {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .context-group {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .stats {
+            margin-top: 15px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .stat-label {
+            color: #666;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+
+        .progress-fill.high {
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+        }
+
+        .progress-fill.medium {
+            background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .progress-fill.low {
+            background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .activity-log {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .activity-log h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .log-container {
+            max-height: 500px;
+            overflow-y: auto;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .log-entry {
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            background: white;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .log-entry.system {
+            border-left-color: #667eea;
+            background: #eff6ff;
+        }
+
+        .log-entry.learning {
+            border-left-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        .log-entry.conversation {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        .log-entry.collaboration {
+            border-left-color: #8b5cf6;
+            background: #f5f3ff;
+        }
+
+        .log-entry.summary {
+            border-left-color: #06b6d4;
+            background: #ecfeff;
+        }
+
+        .log-timestamp {
+            font-size: 0.75em;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .log-message {
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .log-agent {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-connected {
+            background: #10b981;
+            animation: blink 2s infinite;
+        }
+
+        .status-disconnected {
+            background: #ef4444;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            font-weight: bold;
+            z-index: 1000;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state p {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status">
+        <span class="status-indicator status-disconnected" id="statusIndicator"></span>
+        <span id="statusText">Desconectado</span>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>🦁 Sistema de Agentes Animais - IAG</h1>
+            <p>Visualize em tempo real 22 agentes animais aprendendo e conversando entre si</p>
+        </header>
+
+        <div class="control-panel">
+            <h2>🚀 Iniciar Sessão de Aprendizado</h2>
+            <div class="input-group">
+                <input type="text" id="taskInput" placeholder="Nome da tarefa (ex: mandarim, python, japonês)" value="mandarim">
+                <input type="text" id="contentInput" placeholder="Conteúdo para aprendizado" value="Vocabulário básico e gramática">
+                <button class="btn" onclick="startLearning()">Iniciar Aprendizado</button>
+            </div>
+            <p style="color: #666; font-size: 0.9em;">
+                💡 Clique em "Iniciar Aprendizado" para ver todos os agentes aprenderem individualmente, 
+                depois o mais proficiente ajudará o menos proficiente, e finalmente todos conversarão na nova linguagem!
+            </p>
+        </div>
+
+        <div class="agents-grid" id="agentsGrid">
+            <div class="empty-state">
+                <p>⏳ Aguardando conexão com o servidor...</p>
+                <p>Os 22 agentes aparecerão aqui quando conectar.</p>
+            </div>
+        </div>
+
+        <div class="activity-log">
+            <h2>📋 Log de Atividades em Tempo Real</h2>
+            <div class="log-container" id="logContainer">
+                <div class="empty-state">
+                    <p>Nenhuma atividade registrada ainda.</p>
+                    <p>Inicie uma sessão de aprendizado para ver a mágica acontecer!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        const agentsData = {};
+
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function() {
+                document.getElementById('statusIndicator').className = 'status-indicator status-connected';
+                document.getElementById('statusText').textContent = 'Conectado';
+                addLogEntry('system', '✅ Conectado ao servidor de agentes animais!');
+            };
+
+            ws.onclose = function() {
+                document.getElementById('statusIndicator').className = 'status-indicator status-disconnected';
+                document.getElementById('statusText').textContent = 'Desconectado';
+                addLogEntry('system', '❌ Desconectado do servidor. Tentando reconectar...');
+                setTimeout(connect, 3000);
+            };
+
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                addLogEntry('system', '⚠️ Erro na conexão WebSocket');
+            };
+
+            ws.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+        }
+
+        function handleMessage(message) {
+            switch(message.type) {
+                case 'init':
+                    initializeAgents(message.agents);
+                    break;
+                case 'learning':
+                    updateAgentStatus(message.agent_id, 'learning', message.proficiency);
+                    addLogEntry('learning', message.message, message.animal);
+                    break;
+                case 'learning_update':
+                    updateAgentProficiency(message.agent_id, message.new_proficiency);
+                    addLogEntry('learning', message.message, message.animal);
+                    break;
+                case 'collaboration_start':
+                    addLogEntry('collaboration', message.message);
+                    highlightCollaboration(message.helper, message.learner);
+                    break;
+                case 'conversation':
+                    addLogEntry('conversation', message.message, message.from_agent);
+                    break;
+                case 'summary':
+                    addLogEntry('summary', message.message);
+                    resetAgentHighlights();
+                    break;
+                case 'system':
+                    addLogEntry('system', message.message);
+                    break;
+            }
+        }
+
+        function initializeAgents(agents) {
+            const grid = document.getElementById('agentsGrid');
+            grid.innerHTML = '';
+
+            agents.forEach(agent => {
+                agentsData[agent.id] = agent;
+                const card = createAgentCard(agent);
+                grid.appendChild(card);
+            });
+
+            addLogEntry('system', `🎯 ${agents.length} agentes inicializados e prontos para aprender!`);
+        }
+
+        function createAgentCard(agent) {
+            const card = document.createElement('div');
+            card.className = 'agent-card';
+            card.id = `agent-${agent.id}`;
+
+            const contextClass = agent.group_factor > 0.7 ? 'context-group' : 'context-solo';
+            const contextText = agent.group_factor > 0.7 ? 'Grupo' : 'Solitário';
+
+            const avgFactor = (agent.solo_factor + agent.group_factor) / 2;
+            const proficiencyPercent = Math.round(avgFactor * 100);
+
+            card.innerHTML = `
+                <div class="agent-header">
+                    <div class="agent-emoji">${getAnimalEmoji(agent.animal)}</div>
+                    <div class="agent-info">
+                        <h3>${agent.animal}</h3>
+                        <span class="agent-context ${contextClass}">${contextText}</span>
+                    </div>
+                </div>
+                <div class="stats">
+                    <div class="stat-row">
+                        <span class="stat-label">Fator Solitário:</span>
+                        <span class="stat-value">${Math.round(agent.solo_factor * 100)}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${agent.solo_factor * 100}%"></div>
+                    </div>
+                    <div class="stat-row" style="margin-top: 10px;">
+                        <span class="stat-label">Fator Grupo:</span>
+                        <span class="stat-value">${Math.round(agent.group_factor * 100)}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${agent.group_factor * 100}%"></div>
+                    </div>
+                    <div class="stat-row" style="margin-top: 10px;">
+                        <span class="stat-label">Proficiência Base:</span>
+                        <span class="stat-value">${proficiencyPercent}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ${getProgressClass(proficiencyPercent)}" style="width: ${proficiencyPercent}%"></div>
+                    </div>
+                </div>
+            `;
+
+            return card;
+        }
+
+        function getAnimalEmoji(animal) {
+            const emojis = {
+                'Leão': '🦁', 'Tigre': '🐅', 'Elefante': '🐘', 'Hipopótamo': '🦛',
+                'Polvo': '🐙', 'Lobo': '🐺', 'Tubarão': '🦈', 'Orca': '🐋',
+                'Rinoceronte': '🦏', 'Falcão': '🦅', 'Crocodilo': '🐊', 'Cavalo': '🐎',
+                'Gorila': '🦍', 'Ovelha': '🐑', 'Carneiro': '🐏', 'Coelho': '🐇',
+                'Alce': '🦌', 'Marlin': '🐟', 'Urso Pardo': '🐻', 'Leopardo': '🐆',
+                'Canguru': '🦘', 'Bisão': '🦬'
+            };
+            return emojis[animal] || '🐾';
+        }
+
+        function getProgressClass(percent) {
+            if (percent >= 70) return 'high';
+            if (percent >= 40) return 'medium';
+            return 'low';
+        }
+
+        function updateAgentStatus(agentId, status, proficiency) {
+            const card = document.getElementById(`agent-${agentId}`);
+            if (!card) return;
+
+            if (status === 'learning') {
+                card.classList.add('learning');
+                updateProficiencyBar(card, proficiency);
+            }
+        }
+
+        function updateAgentProficiency(agentId, newProficiency) {
+            const card = document.getElementById(`agent-${agentId}`);
+            if (!card) return;
+
+            updateProficiencyBar(card, newProficiency);
+            card.classList.remove('learning');
+        }
+
+        function updateProficiencyBar(card, proficiency) {
+            const percent = Math.round(proficiency * 100);
+            const progressBar = card.querySelector('.progress-bar:last-child .progress-fill');
+            const statValue = card.querySelector('.stat-row:last-child .stat-value');
+            
+            if (progressBar) {
+                progressBar.style.width = `${percent}%`;
+                progressBar.className = `progress-fill ${getProgressClass(percent)}`;
+            }
+            
+            if (statValue) {
+                statValue.textContent = `${percent}%`;
+            }
+        }
+
+        function highlightCollaboration(helper, learner) {
+            // Adiciona destaque visual para colaboração
+            addLogEntry('collaboration', `🤝 ${helper} está ajudando ${learner} a aprender!`);
+        }
+
+        function resetAgentHighlights() {
+            document.querySelectorAll('.agent-card').forEach(card => {
+                card.classList.remove('learning', 'collaborating');
+            });
+        }
+
+        function addLogEntry(type, message, agent = null) {
+            const container = document.getElementById('logContainer');
+            
+            // Remove empty state se existir
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+
+            const timestamp = new Date().toLocaleTimeString('pt-BR');
+            
+            let content = `
+                <div class="log-timestamp">${timestamp}</div>
+                <div class="log-message">
+            `;
+
+            if (agent) {
+                content += `<span class="log-agent">${agent}:</span> `;
+            }
+
+            content += `${message}</div>`;
+            entry.innerHTML = content;
+
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function startLearning() {
+            const task = document.getElementById('taskInput').value.trim();
+            const content = document.getElementById('contentInput').value.trim();
+
+            if (!task) {
+                alert('Por favor, digite o nome da tarefa de aprendizado!');
+                return;
+            }
+
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('Não conectado ao servidor. Aguarde a conexão...');
+                return;
+            }
+
+            const message = {
+                action: 'start_learning',
+                task: task,
+                content: content || `Conteúdo básico de ${task}`
+            };
+
+            ws.send(JSON.stringify(message));
+            addLogEntry('system', `🚀 Iniciando sessão de aprendizado: ${task}`);
+            
+            // Limpar log anterior
+            const container = document.getElementById('logContainer');
+            container.innerHTML = '';
+        }
+
+        // Conectar ao carregar a página
+        window.addEventListener('DOMContentLoaded', connect);
+    </script>
+</body>
+</html>
