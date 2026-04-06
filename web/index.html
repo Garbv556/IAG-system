@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🦁 Sistema de Agentes Animais - IAG</title>
+    <!-- Auto-Load Theme -->
+    <script>
+        const savedTheme = localStorage.getItem('iag_theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+    <style>
+        :root {
+            --bg-main: #f0f2f5;
+            --bg-panel: #ffffff;
+            --text-main: #333333;
+            --box-shadow: rgba(0,0,0,0.1);
+            --log-bg: #f8fafc;
+            --log-entry-bg: #ffffff;
+            --node-border: #64748b;
+            --central-bg: #1e40af;
+            --central-border: #3b82f6;
+            --link-color: #cbd5e1;
+        }
+
+        [data-theme='dark'] {
+            --bg-main: #1a1b26;
+            --bg-panel: #24283b;
+            --text-main: #a9b1d6;
+            --box-shadow: rgba(0,0,0,0.5);
+            --log-bg: #16161e;
+            --log-entry-bg: #292e42;
+            --node-border: #565f89;
+            --central-bg: #0d2777;
+            --central-border: #1e40af;
+            --link-color: #414868;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* Top Panel */
+        .control-panel {
+            background: var(--bg-panel);
+            padding: 15px 25px;
+            box-shadow: 0 4px 10px var(--box-shadow);
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            cursor: pointer;
+            font-size: 24px;
+            user-select: none;
+            background: rgba(100, 100, 100, 0.1);
+            padding: 5px 10px;
+            border-radius: 20px;
+            transition: transform 0.2s;
+        }
+        .theme-toggle:hover { transform: scale(1.1); }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .input-group input[type="text"] {
+            padding: 8px 15px;
+            border: 2px solid var(--node-border);
+            border-radius: 6px;
+            background: var(--bg-main);
+            color: var(--text-main);
+        }
+
+        .api-input {
+            padding: 8px 10px;
+            border: 2px solid #ef4444;
+            border-radius: 6px;
+            background: var(--bg-main);
+            color: var(--text-main);
+            width: 140px;
+        }
+
+        .api-input:focus {
+            border-color: #3b82f6;
+        }
+        
+        .file-upload-btn {
+            background: #4b5563;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn:hover { background: #1d4ed8; }
+
+        #fileNameDisplay {
+            font-size: 12px;
+            color: #10b981;
+            font-weight: bold;
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Graph Canvas */
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .graph-area {
+            flex: 2;
+            position: relative;
+            background: var(--bg-panel);
+            overflow: hidden;
+            transition: background 0.3s;
+        }
+
+        #linksSvg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .link-line {
+            stroke: var(--link-color);
+            stroke-width: 2px;
+            transition: stroke 0.3s, stroke-width 0.3s;
+        }
+        .link-line.active {
+            stroke: #3b82f6;
+            stroke-width: 4px;
+            stroke-dasharray: 10;
+            animation: flow 1s linear infinite;
+        }
+        .link-line.collab {
+            stroke: #f59e0b;
+            stroke-width: 4px;
+            stroke-dasharray: 10;
+            animation: flow 1s linear infinite reverse;
+        }
+        
+        @keyframes flow {
+            from { stroke-dashoffset: 20; }
+            to { stroke-dashoffset: 0; }
+        }
+
+        /* Nodes */
+        .node {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            box-shadow: 0 5px 15px var(--box-shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-panel);
+            z-index: 5;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s;
+        }
+        
+        .node:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            z-index: 6;
+        }
+        
+        .central-node {
+            width: 100px;
+            height: 100px;
+            background: var(--central-bg);
+            color: white;
+            border: 4px solid var(--central-border);
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 10;
+        }
+        
+        .agent-node {
+            width: 60px;
+            height: 60px;
+            background: var(--bg-panel);
+            border: 3px solid var(--node-border);
+        }
+        
+        .agent-node.learning {
+            border-color: #3b82f6;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.8);
+            animation: pulse-node 1.5s infinite;
+        }
+
+        .agent-node.collaborating {
+            border-color: #f59e0b;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.8);
+        }
+
+        @keyframes pulse-node {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.15); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .emoji { font-size: 28px; }
+        .node-name {
+            position: absolute;
+            bottom: -25px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        
+        .node-prof {
+            position: absolute;
+            top: -15px;
+            background: #10b981;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        /* Dual Sidebar Setup */
+        .sidebar {
+            flex: 1;
+            max-width: 350px;
+            display: flex;
+            flex-direction: column;
+            background: var(--log-bg);
+            transition: background 0.3s;
+        }
+        
+        .sidebar-left {
+            border-right: 2px solid var(--node-border);
+        }
+
+        .sidebar-right {
+            border-left: 2px solid var(--node-border);
+        }
+        
+        .sidebar-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .log-header {
+            background: var(--central-bg);
+            color: white;
+            padding: 10px 15px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        /* Sistema Logs */
+        .sys-log-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            font-size: 12px;
+        }
+        
+        .sys-log-entry {
+            padding: 8px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            background: var(--log-entry-bg);
+            border-left: 3px solid var(--node-border);
+            color: var(--text-main);
+        }
+        .sys-log-entry.learning { border-left-color: #10b981; }
+        .sys-log-entry.system { border-left-color: #3b82f6; }
+        
+        /* Chat Logs */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: var(--bg-main);
+        }
+        
+        .chat-wrapper {
+            display: flex;
+            flex-direction: column;
+            max-width: 90%;
+            align-self: flex-start;
+        }
+        .chat-wrapper.helper {
+            align-self: flex-end;
+        }
+
+        .chat-author {
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 2px;
+            color: var(--text-main);
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .chat-wrapper.helper .chat-author {
+            justify-content: flex-end;
+        }
+
+        .chat-bubble {
+            background: #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border-top-left-radius: 0;
+            color: #0f172a;
+            font-size: 13px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        [data-theme='dark'] .chat-bubble {
+            background: #334155;
+            color: #f8fafc;
+        }
+        
+        .chat-wrapper.helper .chat-bubble {
+            background: #dbeafe;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 0;
+            color: #1e40af;
+        }
+        [data-theme='dark'] .chat-wrapper.helper .chat-bubble {
+            background: #1e3a8a;
+            color: #bfdbfe;
+        }
+
+        .log-time { font-size: 9px; opacity: 0.6; margin-top: 5px; text-align: right; }
+
+        /* Connection Status */
+        .status-badge {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 8px 15px;
+            background: var(--bg-panel);
+            color: var(--text-main);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px var(--box-shadow);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 100;
+        }
+        .status-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+        }
+        .connected .status-dot { background: #10b981; }
+        .disconnected .status-dot { background: #ef4444; }
+
+        /* AI Settings Panel */
+        .ai-panel-btn {
+            background: #8b5cf6;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            border: none;
+        }
+        .ai-panel-btn:hover { background: #7c3aed; }
+
+        .ai-side-panel {
+            position: fixed;
+            top: 0;
+            right: -350px;
+            width: 320px;
+            height: 100vh;
+            background: var(--bg-panel);
+            box-shadow: -5px 0 15px var(--box-shadow);
+            z-index: 1000;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        .ai-side-panel.open {
+            right: 0;
+        }
+        
+        .ai-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--node-border);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .ai-close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        .ai-provider-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding: 12px;
+            border: 1px solid var(--node-border);
+            border-radius: 8px;
+            background: var(--bg-main);
+        }
+
+        .ai-provider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #10b981; }
+        input:checked + .slider:before { transform: translateX(20px); }
+        [data-theme='dark'] .slider { background-color: #475569; }
+        
+        .ai-key-input {
+            padding: 8px;
+            border: 1px solid var(--node-border);
+            border-radius: 4px;
+            background: var(--bg-panel);
+            color: var(--text-main);
+            width: 100%;
+            font-size: 12px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="control-panel">
+        <div><strong>IAG Central</strong> - Aprendizado Colaborativo</div>
+        <div class="input-group">
+            <button class="ai-panel-btn" onclick="toggleAiPanel()">⚙️ Configurar IAs</button>
+            <input type="text" id="taskInput" placeholder="Tópico (ex: Filosofia)">
+            
+            <label class="file-upload-btn">
+                📂 Anexar Arquivo
+                <input type="file" id="fileUpload" accept="*/*" onchange="handleFileSelect(event)">
+            </label>
+            <span id="fileNameDisplay">Nenhum arquivo</span>
+
+            <button class="btn" onclick="startLearning()">Disparar Treinamento</button>
+        </div>
+        
+        <div class="theme-toggle" onclick="toggleTheme()" title="Trocar Tema">
+            <span id="themeIcon">☀️</span> | <span id="themeIconMoon">🌙</span>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- Chat on the left -->
+        <div class="sidebar sidebar-left">
+            <div class="sidebar-content">
+                <div class="log-header" style="background:#0f172a; text-align: center;">💬 App de Conversa</div>
+                <div class="chat-container" id="chatContainer">
+                    <!-- Chat bubbles go here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Side Panel -->
+        <div class="ai-side-panel" id="aiSidePanel">
+            <div class="ai-panel-header">
+                Mentes Artificiais
+                <button class="ai-close-btn" onclick="toggleAiPanel()">✖</button>
+            </div>
+            
+            <div class="ai-provider-row">
+                <div class="ai-provider-header">
+                    <span>✨ Google Gemini</span>
+                    <label class="switch"><input type="checkbox" id="toggleGemini" checked><span class="slider"></span></label>
+                </div>
+                <input type="password" id="keyGemini" class="ai-key-input" placeholder="AIzaSy...">
+            </div>
+
+            <div class="ai-provider-row">
+                <div class="ai-provider-header">
+                    <span>🧠 OpenAI (GPT)</span>
+                    <label class="switch"><input type="checkbox" id="toggleOpenAI"><span class="slider"></span></label>
+                </div>
+                <input type="password" id="keyOpenAI" class="ai-key-input" placeholder="sk-proj-...">
+            </div>
+
+            <div class="ai-provider-row">
+                <div class="ai-provider-header">
+                    <span>🎭 Anthropic (Claude)</span>
+                    <label class="switch"><input type="checkbox" id="toggleClaude"><span class="slider"></span></label>
+                </div>
+                <input type="password" id="keyClaude" class="ai-key-input" placeholder="sk-ant-...">
+            </div>
+
+            <div class="ai-provider-row">
+                <div class="ai-provider-header">
+                    <span>⚡ xAI (Grok)</span>
+                    <label class="switch"><input type="checkbox" id="toggleGrok"><span class="slider"></span></label>
+                </div>
+                <input type="password" id="keyGrok" class="ai-key-input" placeholder="xai-...">
+            </div>
+        </div>
+
+        <div class="graph-area" id="graphArea">
+            <svg id="linksSvg"></svg>
+            <div class="node central-node" id="node-center">
+                <span>IAG</span>
+            </div>
+            <!-- Agent nodes will be mapped here -->
+        </div>
+
+        <!-- Logs on the right -->
+        <div class="sidebar sidebar-right">
+            <div class="sidebar-content">
+                <div class="log-header" style="text-align: center;">🖥️ Logs do Sistema</div>
+                <div class="sys-log-container" id="sysLogContainer">
+                    <!-- Tech logs go here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-badge disconnected" id="connStatus">
+        <div class="status-dot"></div>
+        <span id="connText">Desconectado</span>
+    </div>
+
+    <script>
+        let ws = null;
+        let agentsDict = {};
+        const SVG_NS = "http://www.w3.org/2000/svg";
+        let uploadedContent = null;
+
+        // Initial Theme Loader to guarantee synchronization
+        function applySavedTheme() {
+            const t = localStorage.getItem('iag_theme') || 'dark'; // Dark as new default to avoid white flashes
+            document.documentElement.setAttribute('data-theme', t);
+        }
+
+        // Apply immediately as well
+        applySavedTheme();
+
+        // Theme Logic
+        function toggleTheme() {
+            const html = document.documentElement;
+            const newTheme = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('iag_theme', newTheme);
+        }
+
+        // File Handler
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            const display = document.getElementById('fileNameDisplay');
+            if(file) {
+                display.textContent = file.name;
+                const taskInput = document.getElementById('taskInput');
+                if(!taskInput.value) taskInput.value = `Estudo do arquivo: ${file.name}`;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedContent = e.target.result;
+                };
+                
+                // Se for PDF, usar Base64 (DataURL) para o Python decodificar e processar. Senão, Text!
+                if(file.name.toLowerCase().endsWith('.pdf')) {
+                    reader.readAsDataURL(file);
+                } else {
+                    reader.readAsText(file);
+                }
+            } else {
+                display.textContent = "Nenhum arquivo";
+                uploadedContent = null;
+            }
+        }
+
+        // Mapeamento Literal Exato das Classes do Python
+        function getAnimalEmoji(animalName) {
+            const emojis = {
+                'Leao': '🦁', 'Tigre': '🐅', 'Elefante': '🐘', 'HipoAgent': '🦛',
+                'PolvoAgent': '🐙', 'LoboAgent': '🐺', 'TubaraoAgent': '🦈', 'OrcaAgent': '🐋',
+                'RinoceronteAgent': '🦏', 'FalcaoAgent': '🦅', 'CrocodiloAgent': '🐊', 'CavaloAgent': '🐎',
+                'GorilaAgent': '🦍', 'OvelhaAgent': '🐑', 'CarneiroAgent': '🐏', 'CoelhoAgent': '🐇',
+                'AlceAgent': '🦌', 'MarlinAgent': '🐟', 'UrsoPardoAgent': '🐻', 'LeopardoAgent': '🐆',
+                'CanguruAgent': '🦘', 'BisaoAgent': '🦬'
+            };
+            return emojis[animalName] || '🐾';
+        }
+
+        function connect() {
+            const host = window.location.host || 'localhost:8000';
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${host}/ws`;
+            
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                const status = document.getElementById('connStatus');
+                status.className = 'status-badge connected';
+                document.getElementById('connText').textContent = 'Conectado (IAG Online)';
+                logSystem('system', '✅ Conexão WebSocket estabelecida');
+            };
+
+            ws.onclose = () => {
+                const status = document.getElementById('connStatus');
+                status.className = 'status-badge disconnected';
+                document.getElementById('connText').textContent = 'Desconectado';
+                logSystem('system', '❌ Desconectado. Tentando reconectar em 3s...');
+                setTimeout(connect, 3000);
+            };
+
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                handleMessage(msg);
+            };
+        }
+
+        function handleMessage(msg) {
+            switch(msg.type) {
+                case 'init':
+                    generateGraph(msg.agents);
+                    break;
+                case 'learning':
+                    setNodeState(msg.agent_id, 'learning', msg.proficiency);
+                    logSystem('learning', msg.message);
+                    break;
+                case 'learning_update':
+                    setNodeState(msg.agent_id, 'idle', msg.new_proficiency);
+                    logSystem('learning', msg.message);
+                    break;
+                case 'system':
+                    logSystem('system', msg.message);
+                    break;
+                case 'collaboration_start':
+                    logSystem('system', msg.message);
+                    break;
+                case 'summary':
+                    logSystem('system', msg.message);
+                    resetAllNodes();
+                    break;
+                case 'conversation':
+                    // Vai para o Chat!
+                    logChat(msg.from_agent, msg.message, msg.is_helper);
+                    break;
+            }
+        }
+
+        let centerX = 0; let centerY = 0;
+
+        function generateGraph(agents) {
+            const area = document.getElementById('graphArea');
+            const svg = document.getElementById('linksSvg');
+            svg.innerHTML = '';
+            
+            document.querySelectorAll('.agent-node').forEach(el => el.remove());
+            
+            centerX = area.clientWidth / 2;
+            centerY = area.clientHeight / 2;
+            
+            const centerNode = document.getElementById('node-center');
+            centerNode.style.left = `${centerX}px`;
+            centerNode.style.top = `${centerY}px`;
+
+            const innerLayer = [];
+            const outerLayer = [];
+            
+            agents.forEach(a => {
+                agentsDict[a.id] = a;
+                if (a.group_factor >= 0.70) innerLayer.push(a);
+                else outerLayer.push(a);
+            });
+
+            const drawLayer = (layerAgents, radius) => {
+                const total = layerAgents.length;
+                let angle = 0;
+                const step = (2 * Math.PI) / total;
+
+                layerAgents.forEach(agent => {
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle);
+                    angle += step;
+
+                    const line = document.createElementNS(SVG_NS, 'line');
+                    line.setAttribute('x1', centerX);
+                    line.setAttribute('y1', centerY);
+                    line.setAttribute('x2', x);
+                    line.setAttribute('y2', y);
+                    line.setAttribute('id', `link-${agent.id}`);
+                    line.setAttribute('class', 'link-line');
+                    svg.appendChild(line);
+
+                    const div = document.createElement('div');
+                    div.className = 'node agent-node';
+                    div.id = `node-${agent.id}`;
+                    div.style.left = `${x}px`;
+                    div.style.top = `${y}px`;
+
+                    div.innerHTML = `
+                        <div class="node-prof" id="prof-${agent.id}">0%</div>
+                        <div class="emoji">${getAnimalEmoji(agent.animal)}</div>
+                        <div class="node-name">${agent.animal}</div>
+                    `;
+                    
+                    area.appendChild(div);
+                });
+            };
+
+            const minDim = Math.min(centerX, centerY);
+            drawLayer(innerLayer, minDim * 0.45);
+            drawLayer(outerLayer, minDim * 0.85);
+            logSystem('system', `Grafo renderizado com ${agents.length} agentes.`);
+        }
+        
+        window.addEventListener('resize', () => {
+            if(Object.keys(agentsDict).length > 0) {
+                generateGraph(Object.values(agentsDict));
+            }
+        });
+
+        function setNodeState(agentId, state, proficiencyValue) {
+            const node = document.getElementById(`node-${agentId}`);
+            const link = document.getElementById(`link-${agentId}`);
+            const prof = document.getElementById(`prof-${agentId}`);
+            
+            if(!node || !link) return;
+
+            node.className = 'node agent-node';
+            link.className.baseVal = 'link-line';
+
+            if (state === 'learning') {
+                node.classList.add('learning');
+                link.className.baseVal = 'link-line active';
+            } else if (state === 'collab') {
+                node.classList.add('collaborating');
+                link.className.baseVal = 'link-line collab';
+            }
+
+            if(proficiencyValue !== undefined) {
+                prof.textContent = `${Math.round(proficiencyValue * 100)}%`;
+            }
+        }
+
+        function resetAllNodes() {
+            Object.keys(agentsDict).forEach(id => {
+                setNodeState(id, 'idle');
+            });
+        }
+
+        function logSystem(type, msg) {
+            const container = document.getElementById('sysLogContainer');
+            const d = document.createElement('div');
+            d.className = `sys-log-entry ${type}`;
+            const time = new Date().toLocaleTimeString('pt-BR');
+            d.innerHTML = `<strong>[${time}]</strong> ${msg}`;
+            container.appendChild(d);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function logChat(agentName, text, isHelper) {
+            const container = document.getElementById('chatContainer');
+            const emoji = getAnimalEmoji(agentName);
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = `chat-wrapper ${isHelper ? 'helper' : ''}`;
+            
+            const time = new Date().toLocaleTimeString('pt-BR');
+            
+            wrapper.innerHTML = `
+                <div class="chat-author">${emoji} ${agentName}</div>
+                <div class="chat-bubble">${text}</div>
+                <div class="log-time">${time}</div>
+            `;
+            
+            container.appendChild(wrapper);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function toggleAiPanel() {
+            document.getElementById('aiSidePanel').classList.toggle('open');
+        }
+
+        function startLearning() {
+            let task = document.getElementById('taskInput').value.trim();
+            
+            // Collect API configurations dynamically
+            const api_keys = {};
+            if(document.getElementById('toggleGemini').checked) api_keys['gemini'] = document.getElementById('keyGemini').value.trim();
+            if(document.getElementById('toggleOpenAI').checked) api_keys['openai'] = document.getElementById('keyOpenAI').value.trim();
+            if(document.getElementById('toggleClaude').checked) api_keys['claude'] = document.getElementById('keyClaude').value.trim();
+            if(document.getElementById('toggleGrok').checked) api_keys['grok'] = document.getElementById('keyGrok').value.trim();
+            
+            if(!task && !uploadedContent) return alert("Insira um tópico ou anexe um arquivo!");
+            if(!task) task = "Estudo Colaborativo";
+            
+            let finalContent = uploadedContent ? uploadedContent : 'Conteúdo gerado via texto puro.';
+            
+            logSystem('system', `🚀 Iniciando processamento Multi-LLM Distribuído...`);
+            document.getElementById('sysLogContainer').innerHTML = ''; 
+            document.getElementById('chatContainer').innerHTML = ''; // Limpar antigos
+            
+            if(ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    action: 'start_learning',
+                    task: task,
+                    content: finalContent,
+                    api_keys: api_keys
+                }));
+            } else {
+                alert("Servidor desconectado!");
+            }
+            
+            uploadedContent = null;
+            document.getElementById('fileNameDisplay').textContent = "Nenhum arquivo";
+            document.getElementById('fileUpload').value = "";
+        }
+
+        window.onload = () => {
+            applySavedTheme();
+            connect();
+        };
+    </script>
+</body>
+</html>
