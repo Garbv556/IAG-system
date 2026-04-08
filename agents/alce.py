@@ -34,6 +34,11 @@ class AlceAgent(AnimalAgent):
         self.stealth = 0.5
         self.strength = 0.85
         self.speed = 0.6
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Mantenha espaço', 'Evite aproximação']
+        self.collective_tactics = ['Defenda áreas', 'Proteja posições']
+        self.threat_tactics = ['Reaja com força', 'Afaste o inimigo']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Alce."""

@@ -34,6 +34,11 @@ class Elefante(AnimalAgent):
         self.stealth = 0.3
         self.strength = 1.0
         self.speed = 0.5
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Mantenha estabilidade', 'Evite decisões impulsivas']
+        self.collective_tactics = ['Proteja membros vulneráveis', 'Sustente o grupo em momentos críticos']
+        self.threat_tactics = ['Defenda o grupo antes de si', 'Use presença para conter']
     
     def _process_message(self, message: str, sender_id: str) -> str:
         if self.state == State.GROUP:

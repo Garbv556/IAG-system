@@ -53,10 +53,18 @@ class AnimalAgent(ABC):
         self.species = ""
         self.environment = ""
         self.characteristics: List[str] = []
+        self.powers: List[str] = []              # ⚡ Poderes Especiais (Usado primariamente por Pokémon)
         self.solo_behavior = ""
         self.group_behavior = ""
         self.attacks: List[str] = []
         self.rival_response = ""
+        
+        # ═══════════════════════════════════════════════════
+        # DOUTRINA TÁTICA — Comportamento Adaptativo por Modo
+        # ═══════════════════════════════════════════════════
+        self.solo_tactics: List[str] = []       # 🧍 Modo Solo
+        self.collective_tactics: List[str] = []  # 🤝 Modo Coletivo
+        self.threat_tactics: List[str] = []      # ⚠️ Reação a Ameaça
         
         # Fatores de adaptação
         self.adaptation_solo = 0.5  # Quão bem se adapta sozinho
@@ -213,3 +221,87 @@ class AnimalAgent(ABC):
     
     def __str__(self) -> str:
         return f"{self.animal_name} ({self.species}) - Estado: {self.state.value}"
+    
+    # ═══════════════════════════════════════════════════════════
+    # 🔥 INTELIGÊNCIA COLETIVA ADAPTATIVA — REGRAS GLOBAIS
+    # ═══════════════════════════════════════════════════════════
+    # 👉 Nenhum agente é líder. Nenhum agente é subordinado.
+    # Se um falha, todos ajustam.
+    # Se um ataca, todos sustentam.
+    # Se um recua, todos protegem.
+    # ═══════════════════════════════════════════════════════════
+    
+    def get_active_tactics(self) -> List[str]:
+        """Retorna as táticas ativas baseadas no estado atual do agente."""
+        if self.state == State.SOLO:
+            return self.solo_tactics
+        elif self.state == State.GROUP:
+            return self.collective_tactics
+        elif self.state == State.HUNTING:
+            return self.threat_tactics
+        return self.solo_tactics
+    
+    def make_tactical_decision(self, situation: str = "normal") -> Dict[str, Any]:
+        """
+        Toma uma decisão tática baseada na doutrina do animal e situação atual.
+        Situações: 'normal', 'threat', 'opportunity', 'failure', 'support'
+        """
+        tactics = self.get_active_tactics()
+        
+        if situation == "threat":
+            tactics = self.threat_tactics
+        elif situation == "support":
+            # REGRA GLOBAL: Se um falha, todos ajustam
+            tactics = self.collective_tactics
+        
+        return {
+            "agent": self.animal_name,
+            "state": self.state.value,
+            "situation": situation,
+            "active_tactics": tactics,
+            "adaptation_score": self.adaptation_group if self.state == State.GROUP else self.adaptation_solo
+        }
+    
+    def support_ally(self, ally: 'AnimalAgent', topic: str = None) -> str:
+        """
+        PRINCÍPIO: Se um recua, todos protegem / Se um falha, todos ajustam.
+        Compensar fraquezas uns dos outros.
+        """
+        if topic and self.get_proficiency(topic) > ally.get_proficiency(topic):
+            boost = (self.get_proficiency(topic) - ally.get_proficiency(topic)) * 0.15
+            ally.knowledge[topic] = min(1.0, ally.get_proficiency(topic) + boost)
+            return f"[{self.animal_name}] Apoiando {ally.animal_name} em {topic}: +{boost:.2f}"
+        return f"[{self.animal_name}] Compartilhando informação com {ally.animal_name}"
+    
+    def respond_to_group_threat(self) -> Dict[str, Any]:
+        """
+        PRINCÍPIO: Se um ataca, todos sustentam.
+        Nunca agir contra o grupo.
+        """
+        return {
+            "agent": self.animal_name,
+            "response": "sustaining",
+            "tactics": self.threat_tactics,
+            "strength_committed": self.strength,
+            "message": f"[{self.animal_name}] Ativando protocolo de defesa coletiva!"
+        }
+
+    def get_doctrine_summary(self) -> Dict[str, Any]:
+        """Retorna o resumo completo da doutrina tática do agente."""
+        return {
+            "agent": self.animal_name,
+            "species": self.species,
+            "solo_tactics": self.solo_tactics,
+            "collective_tactics": self.collective_tactics,
+            "threat_tactics": self.threat_tactics,
+            "attributes": {
+                "intelligence": self.intelligence,
+                "aggressiveness": self.aggressiveness,
+                "stealth": self.stealth,
+                "strength": self.strength,
+                "speed": self.speed,
+                "adaptation_solo": self.adaptation_solo,
+                "adaptation_group": self.adaptation_group
+            }
+        }
+

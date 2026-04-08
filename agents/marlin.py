@@ -34,6 +34,11 @@ class MarlinAgent(AnimalAgent):
         self.stealth = 0.6
         self.strength = 0.7
         self.speed = 0.95
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Mantenha velocidade', 'Ataque em movimento']
+        self.collective_tactics = ['Circule e pressione', 'Crie oportunidades']
+        self.threat_tactics = ['Ataque rápido', 'Não permaneça parado']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Marlin."""

@@ -34,6 +34,11 @@ class UrsoPardoAgent(AnimalAgent):
         self.stealth = 0.6
         self.strength = 0.95
         self.speed = 0.65
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Seja autossuficiente', 'Controle o espaço']
+        self.collective_tactics = ['Atue como força de suporte', 'Sustente combates longos']
+        self.threat_tactics = ['Enfrente diretamente', 'Não ceda facilmente']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Urso Pardo."""

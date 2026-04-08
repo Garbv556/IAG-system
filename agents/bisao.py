@@ -65,6 +65,11 @@ class BisaoAgent(AnimalAgent):
         self.strength = 0.95  # Força extrema
         self.speed = 0.75  # Velocidade boa para o tamanho
 
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Resista e persista', 'Mantenha posição firme']
+        self.collective_tactics = ['Mova-se como unidade', 'Proteja os flancos do grupo']
+        self.threat_tactics = ['Carga frontal coordenada', 'Nunca quebre a formação']
+
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Bisão."""
         return {

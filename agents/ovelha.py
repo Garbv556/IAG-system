@@ -34,6 +34,11 @@ class OvelhaAgent(AnimalAgent):
         self.stealth = 0.3
         self.strength = 0.4
         self.speed = 0.5
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Permaneça alerta', 'Evite exposição']
+        self.collective_tactics = ['Mantenha coesão', 'Siga o fluxo do grupo']
+        self.threat_tactics = ['Recuo coletivo', 'Evite isolamento']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Ovelha."""

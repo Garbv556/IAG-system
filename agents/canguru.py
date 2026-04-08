@@ -64,6 +64,11 @@ class CanguruAgent(AnimalAgent):
         self.stealth = 0.5
         self.strength = 0.7
         self.speed = 0.85
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Mantenha mobilidade', 'Use agilidade como vantagem']
+        self.collective_tactics = ['Proteja grupo com posicionamento', 'Alterne entre defesa e ataque']
+        self.threat_tactics = ['Contra-ataque com impacto', 'Use distância a seu favor']
         
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Canguru."""

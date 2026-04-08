@@ -34,6 +34,11 @@ class CarneiroAgent(AnimalAgent):
         self.stealth = 0.4
         self.strength = 0.8
         self.speed = 0.65
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Avalie antes de agir', 'Evite desgaste']
+        self.collective_tactics = ['Entre em disputas pontuais', 'Resolva conflitos diretos']
+        self.threat_tactics = ['Confronte com impacto', 'Resolva rapidamente']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Carneiro."""

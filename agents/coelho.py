@@ -34,6 +34,11 @@ class CoelhoAgent(AnimalAgent):
         self.stealth = 0.7
         self.strength = 0.3
         self.speed = 0.85
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Detecte riscos cedo', 'Evite confronto']
+        self.collective_tactics = ['Alerte o grupo', 'Compartilhe perigo']
+        self.threat_tactics = ['Evacue imediatamente', 'Priorize sobrevivência']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Coelho."""

@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.env
+*.md
+!README.md
+web/index_backup.html
+fusion/
+create_pokemons.py
+ultra_upgrade_html.py
+upgrade_html.py
+inject_glass_toggle.py
+inject_tactics.py
+refactor_server.py
+rewrite_html.py
+start_fusion.py
+.gemini/

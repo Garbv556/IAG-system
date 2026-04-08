@@ -34,6 +34,11 @@ class LeopardoAgent(AnimalAgent):
         self.stealth = 0.98
         self.strength = 0.75
         self.speed = 0.85
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Seja invisível', 'Evite exposição']
+        self.collective_tactics = ['Atue nas bordas', 'Explore falhas']
+        self.threat_tactics = ['Ataque rápido', 'Recuo imediato']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Leopardo."""

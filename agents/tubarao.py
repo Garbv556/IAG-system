@@ -34,6 +34,11 @@ class TubaraoAgent(AnimalAgent):
         self.stealth = 0.8
         self.strength = 0.9
         self.speed = 0.85
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Analise o alvo', 'Ataque com precisão']
+        self.collective_tactics = ['Evite interferir nos outros', 'Aproveite oportunidades abertas']
+        self.threat_tactics = ['Teste antes de agir', 'Ataque apenas se vantajoso']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Tubarao."""

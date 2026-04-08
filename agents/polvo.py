@@ -34,6 +34,11 @@ class PolvoAgent(AnimalAgent):
         self.stealth = 0.98
         self.strength = 0.6
         self.speed = 0.7
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Adapte-se constantemente', 'Encontre múltiplas soluções']
+        self.collective_tactics = ['Apoie com criatividade', 'Resolva problemas complexos']
+        self.threat_tactics = ['Evite confronto direto', 'Escape e reestruture']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Polvo."""

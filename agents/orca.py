@@ -34,6 +34,11 @@ class OrcaAgent(AnimalAgent):
         self.stealth = 0.7
         self.strength = 0.9
         self.speed = 0.85
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Recolha informação', 'Prepare estratégias']
+        self.collective_tactics = ['Coopere ativamente', 'Combine ações com precisão']
+        self.threat_tactics = ['Trabalhe em equipe', 'Execute plano conjunto']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Orca."""

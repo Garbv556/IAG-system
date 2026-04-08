@@ -34,6 +34,11 @@ class GorilaAgent(AnimalAgent):
         self.stealth = 0.5
         self.strength = 0.95
         self.speed = 0.6
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Demonstre presença', 'Evite conflito desnecessário']
+        self.collective_tactics = ['Proteja aliados próximos', 'Imponha respeito']
+        self.threat_tactics = ['Intimide primeiro', 'Ataque se necessário']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Gorila."""

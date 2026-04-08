@@ -34,6 +34,11 @@ class CavaloAgent(AnimalAgent):
         self.stealth = 0.4
         self.strength = 0.75
         self.speed = 0.9
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Mantenha mobilidade', 'Evite confrontos']
+        self.collective_tactics = ['Ajude no deslocamento', 'Mantenha fluxo e ritmo']
+        self.threat_tactics = ['Retire-se rapidamente', 'Reposicione o grupo']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Cavalo."""

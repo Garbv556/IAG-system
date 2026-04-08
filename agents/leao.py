@@ -44,6 +44,11 @@ class Leao(AnimalAgent):
         self.stealth = 0.6  # Moderadamente furtivo
         self.strength = 0.9  # Muito forte
         self.speed = 0.7  # Rápido
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Tome iniciativa quando necessário', 'Teste o ambiente antes de agir']
+        self.collective_tactics = ['Compartilhe oportunidades', 'Entre em ação quando o grupo precisar de pressão']
+        self.threat_tactics = ['Enfrente com firmeza', 'Nunca abandone aliados']
     
     def _process_message(self, message: str, sender_id: str) -> str:
         """Leão processa mensagens com postura de liderança"""

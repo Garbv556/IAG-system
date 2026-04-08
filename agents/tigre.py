@@ -44,6 +44,11 @@ class Tigre(AnimalAgent):
         self.stealth = 0.98  # Furtividade máxima
         self.strength = 0.92  # Muito forte
         self.speed = 0.75  # Rápido
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Observe antes de agir', 'Ataque apenas quando tiver vantagem']
+        self.collective_tactics = ['Atue como executor silencioso', 'Entre apenas no momento decisivo']
+        self.threat_tactics = ['Evite conflito desnecessário', 'Elimine rapidamente se inevitável']
     
     def _process_message(self, message: str, sender_id: str) -> str:
         """Tigres são diretos e preferem comunicação mínima"""

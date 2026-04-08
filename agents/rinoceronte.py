@@ -34,6 +34,11 @@ class RinoceronteAgent(AnimalAgent):
         self.stealth = 0.3
         self.strength = 0.95
         self.speed = 0.7
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Seja direto', 'Evite complicações']
+        self.collective_tactics = ['Abra caminho quando necessário', 'Atue como força de ruptura']
+        self.threat_tactics = ['Avance com decisão', 'Não recue sob pressão']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Rinoceronte."""

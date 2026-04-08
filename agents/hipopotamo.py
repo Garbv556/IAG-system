@@ -34,6 +34,11 @@ class HipoAgent(AnimalAgent):
         self.stealth = 0.4
         self.strength = 0.95
         self.speed = 0.65
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Defina limites claros', 'Não permita invasão de espaço']
+        self.collective_tactics = ['Proteja zonas críticas', 'Reaja rápido a qualquer risco']
+        self.threat_tactics = ['Ataque imediato se invadido', 'Não hesite sob pressão']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Hipopotamo."""

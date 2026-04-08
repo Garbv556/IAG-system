@@ -34,6 +34,11 @@ class FalcaoAgent(AnimalAgent):
         self.stealth = 0.6
         self.strength = 0.5
         self.speed = 0.99
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Observe de longe', 'Identifique pontos fracos']
+        self.collective_tactics = ['Forneça visão e informação', 'Apoie com precisão']
+        self.threat_tactics = ['Ataque rápido', 'Retire-se imediatamente']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Falcao."""

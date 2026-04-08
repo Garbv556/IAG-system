@@ -34,6 +34,11 @@ class CrocodiloAgent(AnimalAgent):
         self.stealth = 0.9
         self.strength = 0.9
         self.speed = 0.6
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Espere o momento certo', 'Não revele intenções']
+        self.collective_tactics = ['Aproveite distrações criadas por outros', 'Atue no momento exato']
+        self.threat_tactics = ['Ataque surpresa', 'Finalize rapidamente']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Crocodilo."""

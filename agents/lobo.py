@@ -34,6 +34,11 @@ class LoboAgent(AnimalAgent):
         self.stealth = 0.75
         self.strength = 0.7
         self.speed = 0.8
+
+        # ═══ DOUTRINA TÁTICA ═══
+        self.solo_tactics = ['Mapeie o ambiente', 'Planeje antes de agir']
+        self.collective_tactics = ['Sincronize com os outros', 'Atue em coordenação']
+        self.threat_tactics = ['Não ataque sozinho', 'Apoie estratégia coletiva']
     
     def get_special_abilities(self) -> Dict[str, float]:
         """Retorna habilidades especiais do Lobo."""
