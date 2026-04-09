@@ -43,7 +43,8 @@
             transition: all 0.3s;
         }
 
-        /* Top Control Panel */
+
+        /* Top Control Panel (Restaurado) */
         .header {
             background: var(--bg-panel);
             padding: 10px 20px;
@@ -126,10 +127,17 @@
         .graph-wrapper {
             flex: 1.5;
             position: relative;
-            background: radial-gradient(circle at center, rgba(30, 41, 59, 0.5) 0%, transparent 70%);
+            background: radial-gradient(circle at center, rgba(30, 41, 59, 0.4) 0%, transparent 80%);
         }
-        .graph-svg { width: 100%; height: 100%; position: absolute; top:0; left:0; pointer-events: none; }
+        .graph-svg { width: 100%; height: 100%; position: absolute; top:0; left:0; }
         
+        .ring-decor {
+            fill: none;
+            stroke: var(--glass-border);
+            stroke-width: 1px;
+            opacity: 0.3;
+        }
+
         .central-node {
             position: absolute;
             top: 50%; left: 50%;
@@ -220,6 +228,67 @@
         .dot { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; }
         .dot.online { background: #10b981; box-shadow: 0 0 5px #10b981; }
 
+ 
+        /* Floating Interview Chat */
+        .interview-modal {
+            position: fixed;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--anim-primary);
+            border-radius: 12px;
+            width: 280px;
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s ease-out;
+        }
+        .interview-header {
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .interview-body {
+            height: 180px;
+            overflow-y: auto;
+            padding: 10px;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .interview-footer {
+            padding: 10px;
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            gap: 5px;
+        }
+        .interview-input {
+            flex: 1;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+        .interview-msg {
+            padding: 6px 10px;
+            border-radius: 10px;
+            max-width: 90%;
+            word-wrap: break-word;
+            font-size: 0.75rem;
+        }
+        .msg-user { background: rgba(59, 130, 246, 0.4); align-self: flex-end; border: 1px solid var(--anim-primary); color: #fff; }
+        .msg-agent { background: rgba(255, 255, 255, 0.1); align-self: flex-start; border: 1px solid var(--glass-border); color: #fff; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
     </style>
 </head>
 <body>
@@ -289,11 +358,25 @@
         <span id="status-text">DISCONNECTED</span>
     </div>
 
+    <div id="interviewModal" class="interview-modal">
+        <div class="interview-header">
+            <span id="interviewTitle">Entrevista</span>
+            <button class="btn-micro" onclick="closeInterview()">X</button>
+        </div>
+        <div id="interviewBody" class="interview-body"></div>
+        <div class="interview-footer">
+            <input type="text" id="interviewInput" class="interview-input" placeholder="Pergunte algo..." onkeydown="if(event.key==='Enter') sendInterview()">
+            <button class="btn-micro" onclick="sendInterview()">➤</button>
+        </div>
+    </div>
+
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script>
         let ws = null;
         let agentsDict = { animals: {}, pokemons: {} };
         let uploads = { animals: null, pokemons: null };
+        let isMatrixRunning = false;
+        let currentCycle = 0;
 
         function toggleTheme() {
             const html = document.documentElement;
@@ -352,15 +435,22 @@
         }
 
         function handleMessage(msg) {
+            console.log("Recebido:", msg);
             if (msg.type === 'init') {
                 initSystem(msg.animals, 'animals', '#svg-animals', 'area-animals');
                 initSystem(msg.pokemons, 'pokemons', '#svg-pokemons', 'area-pokemons');
             } else if (msg.type === 'learning' || msg.type === 'learning_update') {
                 updateNode(msg.agent_id, msg.system, msg.proficiency || msg.new_proficiency, msg.type === 'learning');
-            } else if (msg.type === 'conversation') {
+            } else if (msg.type === 'conversation' || msg.type === 'system') {
+                if (msg.cycle) {
+                    currentCycle = msg.cycle;
+                    document.getElementById('topic').placeholder = `Ciclo de Evolução #${currentCycle}`;
+                }
                 addChat(msg);
             } else if (msg.type === 'refinement') {
                 addRefinement(msg);
+            } else if (msg.type === 'agent_response') {
+                handleAgentResponse(msg);
             }
         }
 
@@ -372,33 +462,56 @@
 
             const w = area.clientWidth;
             const h = area.clientHeight;
-            const radius = Math.min(w, h) * 0.35;
+            const midX = w / 2;
+            const midY = h / 2;
+            const minDim = Math.min(w, h);
 
-            agents.forEach((agent, i) => {
-                agentsDict[systemName][agent.id] = agent;
-                const angle = (i / agents.length) * 2 * Math.PI;
-                const x = w/2 + radius * Math.cos(angle);
-                const y = h/2 + radius * Math.sin(angle);
+            // Background Decorative Rings (Scaled down)
+            [0.15, 0.32, 0.48].forEach(r => {
+                svg.append("circle")
+                    .attr("cx", midX).attr("cy", midY)
+                    .attr("r", minDim * r)
+                    .attr("class", "ring-decor");
+            });
 
-                // Line
-                svg.append("line")
-                    .attr("x1", w/2).attr("y1", h/2)
-                    .attr("x2", x).attr("y2", y)
-                    .attr("stroke", "rgba(255,255,255,0.05)")
-                    .attr("id", `link-${systemName}-${agent.id}`);
+            // Split layers: Inner (6), Outer (Rest) - Scaled down
+            const layers = [
+                { items: agents.slice(0, 6), radius: minDim * 0.16 },
+                { items: agents.slice(6), radius: minDim * 0.33 }
+            ];
 
-                // Node
-                const node = document.createElement('div');
-                node.className = 'agent-node';
-                node.id = `node-${systemName}-${agent.id}`;
-                node.style.left = `${x}px`;
-                node.style.top = `${y}px`;
-                node.innerHTML = `
-                    <div class="node-prof" id="prof-${systemName}-${agent.id}">0%</div>
-                    <div class="node-emoji">${getEmoji(agent.animal, systemName)}</div>
-                    <div class="node-name">${agent.animal}</div>
-                `;
-                area.appendChild(node);
+            layers.forEach((layer, layerIdx) => {
+                const total = layer.items.length;
+                layer.items.forEach((agent, i) => {
+                    agentsDict[systemName][agent.id] = agent;
+                    const angle = (i / total) * 2 * Math.PI - (Math.PI / 2); // Start from top
+                    const x = midX + layer.radius * Math.cos(angle);
+                    const y = midY + layer.radius * Math.sin(angle);
+
+                    // Line from center
+                    svg.append("line")
+                        .attr("x1", midX).attr("y1", midY)
+                        .attr("x2", x).attr("y2", y)
+                        .attr("stroke", "rgba(255,255,255,0.02)")
+                        .attr("id", `link-${systemName}-${agent.id}`);
+
+                    // Node (Scaled down slightly)
+                    const node = document.createElement('div');
+                    node.className = 'agent-node';
+                    node.id = `node-${systemName}-${agent.id}`;
+                    node.style.left = `${x}px`;
+                    node.style.top = `${y}px`;
+                    node.style.width = layerIdx === 0 ? '42px' : '34px'; 
+                    node.style.height = layerIdx === 0 ? '42px' : '34px';
+                    
+                    node.innerHTML = `
+                        <div class="node-prof" id="prof-${systemName}-${agent.id}">0%</div>
+                        <div class="node-emoji">${getEmoji(agent.animal, systemName)}</div>
+                        <div class="node-name" style="font-size: ${layerIdx === 0 ? '0.6rem' : '0.5rem'}">${agent.animal}</div>
+                    `;
+                    node.onclick = (e) => openInterview(e, agent.id, agent.animal, systemName);
+                    area.appendChild(node);
+                });
             });
         }
 
@@ -407,7 +520,11 @@
             const profText = document.getElementById(`prof-${system}-${id}`);
             if (node) {
                 node.classList.toggle('active-learning', active);
-                if (prof !== undefined) profText.textContent = `${Math.round(prof * 100)}%`;
+                // Garantia contra proficiência nula ou elementos ausentes
+                if (profText) {
+                    const pValue = prof !== undefined ? prof : 0;
+                    profText.textContent = `${Math.round(pValue * 100)}%`;
+                }
             }
         }
 
@@ -419,7 +536,7 @@
             const bubble = document.createElement('div');
             bubble.className = `msg-bubble ${data.is_helper ? 'is-helper' : ''}`;
             bubble.innerHTML = `
-                <div class="msg-author">${getEmoji(data.from_agent, data.system)} ${data.from_agent}</div>
+                <div class="msg-author">${data.from_agent || 'SISTEMA'}</div>
                 <div>${data.message}</div>
             `;
             cont.appendChild(bubble);
@@ -437,31 +554,100 @@
         }
 
         function startLearning(targetSystem = null) {
-            const topic = document.getElementById('topic').value.trim();
+            const topicInput = document.getElementById('topic');
+            const topic = topicInput.value.trim();
             const key = document.getElementById('apiKey').value.trim();
+            const mainBtn = document.querySelector('.header .btn');
+
+            if (isMatrixRunning && !targetSystem) {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ action: 'stop_learning', target_system: null }));
+                }
+                isMatrixRunning = false;
+                mainBtn.textContent = "INICIAR SINCRONIA";
+                mainBtn.style.background = "";
+                return;
+            }
+
             if (!topic && !targetSystem) return alert("Defina um tópico!");
-            
             const systems = targetSystem ? [targetSystem] : ['animals', 'pokemons'];
             
-            systems.forEach(sys => {
-                document.getElementById(`chat-${sys}`).innerHTML = '';
-            });
+            if (!targetSystem) {
+                isMatrixRunning = true;
+                mainBtn.textContent = "PARAR MATRIX";
+                mainBtn.style.background = "#ef4444";
+                currentCycle = 0;
+            }
 
             if (ws && ws.readyState === WebSocket.OPEN) {
                 systems.forEach(sys => {
+                    addChat({ system: sys, message: "📡 Comando de Evolução Perpétua enviado...", from_agent: "SISTEMA" });
                     ws.send(JSON.stringify({
                         action: 'start_learning',
-                        task: topic || (uploads[sys] ? "Processamento de Arquivo" : "Novo Ciclo"),
-                        content: uploads[sys] || `Iniciando sincronização profunda sobre ${topic}`,
+                        task: topic || "Auto-Evolução",
+                        content: uploads[sys] || `Expertise sobre ${topic}`,
                         api_keys: { gemini_key: key },
                         target_system: sys
                     }));
-                    // Limpa após envio se for individual
-                    if (targetSystem) {
-                        uploads[sys] = null;
-                        document.getElementById(`label-${sys}`).textContent = "";
-                    }
                 });
+            } else {
+                alert("Conexão WebSocket perdida.");
+            }
+        }
+
+        let currentAgent = null;
+        function openInterview(event, id, animal, system) {
+            currentAgent = { id, animal, system };
+            const modal = document.getElementById('interviewModal');
+            document.getElementById('interviewTitle').textContent = `Entrevistando: ${animal}`;
+            document.getElementById('interviewBody').innerHTML = '';
+            
+            // Posicionar modal perto do clique
+            modal.style.left = `${event.clientX + 10}px`;
+            modal.style.top = `${event.clientY - 50}px`;
+            modal.style.display = 'flex';
+            
+            addInterviewMsg(`🐾 Olá! Eu sou o ${animal}. O que você deseja me perguntar sobre nossa missão ou programação?`, 'agent'); // Fallback local
+        }
+
+        function closeInterview() {
+            document.getElementById('interviewModal').style.display = 'none';
+            currentAgent = null;
+        }
+
+        function sendInterview() {
+            const input = document.getElementById('interviewInput');
+            const msg = input.value.trim();
+            if (!msg || !currentAgent) return;
+
+            addInterviewMsg(msg, 'user');
+            input.value = '';
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    action: 'direct_chat',
+                    agent_id: currentAgent.id,
+                    system: currentAgent.system,
+                    message: msg,
+                    api_keys: { gemini_key: document.getElementById('apiKey').value.trim() }
+                }));
+            }
+        }
+
+        function addInterviewMsg(text, sender) {
+            const body = document.getElementById('interviewBody');
+            const div = document.createElement('div');
+            div.className = `interview-msg msg-${sender}`;
+            div.textContent = text;
+            body.appendChild(div);
+            body.scrollTop = body.scrollHeight;
+        }
+
+        function handleAgentResponse(data) {
+            if (currentAgent && currentAgent.id === data.agent_id) {
+                addInterviewMsg(data.message, 'agent');
+            } else {
+                addChat({ ...data, from_agent: `[ENTREVISTA] ${data.animal}`, is_helper: false });
             }
         }
 
