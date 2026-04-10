@@ -106,6 +106,10 @@
             background: var(--bg-main);
             position: relative;
             overflow: hidden;
+            transition: filter 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .system-column.off {
+            filter: brightness(0.5);
         }
 
         .system-header {
@@ -180,6 +184,57 @@
             position: absolute; top: -10px; background: #10b981; color: white;
             padding: 1px 4px; border-radius: 8px; font-size: 0.55rem; font-weight: bold;
         }
+
+        /* Power Controls */
+        .power-btn-system {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            color: #10b981;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: 10px;
+        }
+        .power-btn-system.off { color: #ef4444; border-color: #ef4444; }
+
+        .agent-node.inactive {
+            opacity: 0.25;
+            filter: grayscale(1);
+            pointer-events: auto;
+        }
+        .node-power-indicator {
+            position: absolute; bottom: 0; right: 0;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #10b981;
+            border: 2px solid var(--bg-panel);
+        }
+        .agent-node.inactive .node-power-indicator { background: #ef4444; }
+
+        /* Data Flow Sparks */
+        .spark-particle {
+            fill: #3b82f6; 
+            filter: drop-shadow(0 0 5px #3b82f6);
+            pointer-events: none;
+        }
+
+        /* Tópicos e Blocos de Código (Matrix Theme) */
+        .msg-bubble h3 { font-size: 0.85rem; color: #3b82f6; margin: 8px 0 4px 0; border-bottom: 1px solid rgba(59, 130, 246, 0.2); }
+        .msg-bubble pre { 
+            background: rgba(0, 0, 0, 0.3); 
+            border: 1px solid #3b82f6; 
+            border-radius: 4px; 
+            padding: 8px; 
+            margin: 8px 0; 
+            font-family: 'Courier New', Courier, monospace; 
+            color: #60a5fa; 
+            overflow-x: auto; 
+            font-size: 0.7rem;
+            box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.1);
+        }
+        .msg-bubble code { color: #93c5fd; }
 
         /* Chat Panels */
         .chat-panel {
@@ -314,8 +369,8 @@
                     </label>
                     <span id="label-animals" style="font-size: 0.6rem; color: #10b981; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
                 </div>
-                <span>Córtex Selvagem</span>
-                <span style="font-size: 0.6rem; opacity: 0.5;">v2.5_fauna</span>
+                <span>CÓRTEX SELVAGEM <small style="opacity:0.5; font-size: 0.6rem;">v2.5</small></span>
+                <button class="power-btn-system" id="btn-pwr-animals" onclick="toggleSystemPower('animals')">ON</button>
             </div>
             <div class="graph-wrapper" id="area-animals">
                 <svg class="graph-svg" id="svg-animals"></svg>
@@ -338,8 +393,8 @@
                     </label>
                     <span id="label-pokemons" style="font-size: 0.6rem; color: #a78bfa; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
                 </div>
-                <span>Nexo Elemental</span>
-                <span style="font-size: 0.6rem; opacity: 0.5;">v1.0_nexo</span>
+                <span>NEXO ELEMENTAL <small style="opacity:0.5; font-size: 0.6rem;">v1.0</small></span>
+                <button class="power-btn-system" id="btn-pwr-pokemons" onclick="toggleSystemPower('pokemons')">ON</button>
             </div>
             <div class="graph-wrapper" id="area-pokemons">
                 <svg class="graph-svg" id="svg-pokemons"></svg>
@@ -360,7 +415,10 @@
 
     <div id="interviewModal" class="interview-modal">
         <div class="interview-header">
-            <span id="interviewTitle">Entrevista</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span id="interviewTitle">Entrevista</span>
+                <button id="btn-pwr-chat" class="power-btn-system" style="margin: 0; padding: 1px 6px; font-size: 0.55rem;">ON</button>
+            </div>
             <button class="btn-micro" onclick="closeInterview()">X</button>
         </div>
         <div id="interviewBody" class="interview-body"></div>
@@ -439,6 +497,20 @@
             if (msg.type === 'init') {
                 initSystem(msg.animals, 'animals', '#svg-animals', 'area-animals');
                 initSystem(msg.pokemons, 'pokemons', '#svg-pokemons', 'area-pokemons');
+                
+                // Aplicar estado persistido dos sistemas
+                if (msg.systems_active) {
+                    Object.keys(msg.systems_active).forEach(sys => {
+                        const active = msg.systems_active[sys];
+                        const btn = document.getElementById(`btn-pwr-${sys}`);
+                        const column = document.querySelector(`.${sys}-side`);
+                        if (btn) {
+                            btn.classList.toggle('off', !active);
+                            btn.textContent = active ? "ON" : "OFF";
+                        }
+                        if (column) column.classList.toggle('off', !active);
+                    });
+                }
             } else if (msg.type === 'learning' || msg.type === 'learning_update') {
                 updateNode(msg.agent_id, msg.system, msg.proficiency || msg.new_proficiency, msg.type === 'learning');
             } else if (msg.type === 'conversation' || msg.type === 'system') {
@@ -449,6 +521,25 @@
                 addChat(msg);
             } else if (msg.type === 'refinement') {
                 addRefinement(msg);
+            } else if (msg.type === 'agent_status') {
+                const node = document.getElementById(`node-${msg.system}-${msg.agent_id}`);
+                if (node) node.classList.toggle('inactive', !msg.active);
+            } else if (msg.type === 'data_flow') {
+                if (msg.active) {
+                    startDataFlow(msg.agent_id, msg.system);
+                } else {
+                    stopDataFlow(msg.agent_id, msg.system);
+                }
+            } else if (msg.type === 'system_status') {
+                const btn = document.getElementById(`btn-pwr-${msg.system}`);
+                const column = document.querySelector(`.${msg.system}-side`);
+                if (btn) {
+                    btn.classList.toggle('off', !msg.active);
+                    btn.textContent = msg.active ? "ON" : "OFF";
+                }
+                if (column) {
+                    column.classList.toggle('off', !msg.active);
+                }
             } else if (msg.type === 'agent_response') {
                 handleAgentResponse(msg);
             }
@@ -498,6 +589,8 @@
                     // Node (Scaled down slightly)
                     const node = document.createElement('div');
                     node.className = 'agent-node';
+                    if (agent.active === false) node.classList.add('inactive');
+                    
                     node.id = `node-${systemName}-${agent.id}`;
                     node.style.left = `${x}px`;
                     node.style.top = `${y}px`;
@@ -508,8 +601,16 @@
                         <div class="node-prof" id="prof-${systemName}-${agent.id}">0%</div>
                         <div class="node-emoji">${getEmoji(agent.animal, systemName)}</div>
                         <div class="node-name" style="font-size: ${layerIdx === 0 ? '0.6rem' : '0.5rem'}">${agent.animal}</div>
+                        <div class="node-power-indicator"></div>
                     `;
-                    node.onclick = (e) => openInterview(e, agent.id, agent.animal, systemName);
+                    node.onclick = (e) => {
+                        // Se clicar com ALT, desliga/liga o agente
+                        if (e.altKey) {
+                            toggleAgentPower(systemName, agent.id);
+                        } else {
+                            openInterview(e, agent.id, agent.animal, systemName);
+                        }
+                    };
                     area.appendChild(node);
                 });
             });
@@ -599,8 +700,19 @@
         function openInterview(event, id, animal, system) {
             currentAgent = { id, animal, system };
             const modal = document.getElementById('interviewModal');
+            const btnChat = document.getElementById('btn-pwr-chat');
+            const node = document.getElementById(`node-${system}-${id}`);
+            
             document.getElementById('interviewTitle').textContent = `Entrevistando: ${animal}`;
             document.getElementById('interviewBody').innerHTML = '';
+
+            // Sincronizar estado inicial do botão no chat
+            if (btnChat && node) {
+                const isActive = !node.classList.contains('inactive');
+                btnChat.classList.toggle('off', !isActive);
+                btnChat.textContent = isActive ? "ON" : "OFF";
+                btnChat.onclick = () => toggleAgentPower(system, id);
+            }
             
             // Posicionar modal perto do clique
             modal.style.left = `${event.clientX + 10}px`;
@@ -643,12 +755,90 @@
             body.scrollTop = body.scrollHeight;
         }
 
+        function toggleSystemPower(system) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: 'toggle_system', system: system }));
+            }
+        }
+
+        function toggleAgentPower(system, id) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: 'toggle_agent', system: system, agent_id: id }));
+            }
+        }
+
         function handleAgentResponse(data) {
             if (currentAgent && currentAgent.id === data.agent_id) {
                 addInterviewMsg(data.message, 'agent');
             } else {
                 addChat({ ...data, from_agent: `[ENTREVISTA] ${data.animal}`, is_helper: false });
             }
+        }
+
+        const flowIntervals = {};
+
+        function startDataFlow(agentId, system) {
+            const key = `${system}-${agentId}`;
+            if (flowIntervals[key]) return;
+
+            const svg = d3.select(system === 'animals' ? '#svg-animals' : '#svg-pokemons');
+            const line = svg.select(`#link-${system}-${agentId}`);
+            if (line.empty()) return;
+
+            const xOrigin = +line.attr('x1');
+            const yOrigin = +line.attr('y1');
+            const xDest = +line.attr('x2');
+            const yDest = +line.attr('y2');
+
+            flowIntervals[key] = setInterval(() => {
+                const dot = svg.append('circle')
+                    .attr('class', 'spark-particle')
+                    .attr('r', 2)
+                    .attr('cx', xOrigin)
+                    .attr('cy', yOrigin);
+
+                dot.transition()
+                    .duration(1200)
+                    .attr('cx', xDest)
+                    .attr('cy', yDest)
+                    .on('end', function() {
+                        d3.select(this)
+                            .transition()
+                            .duration(1200)
+                            .attr('cx', xOrigin)
+                            .attr('cy', yOrigin)
+                            .remove();
+                    });
+            }, 300);
+        }
+
+        function stopDataFlow(agentId, system) {
+            const key = `${system}-${agentId}`;
+            if (flowIntervals[key]) {
+                clearInterval(flowIntervals[key]);
+                delete flowIntervals[key];
+            }
+        }
+
+        function addChat(msg) {
+            const side = msg.system === 'animals' ? 'animals' : 'pokemons';
+            const logs = document.getElementById(`logs-${side}`);
+            if (!logs) return;
+
+            const bubble = document.createElement('div');
+            bubble.className = `msg-bubble ${msg.is_helper ? 'is-helper' : ''}`;
+            
+            let content = msg.message;
+            content = content.replace(/### (.*?)\n/g, '<h3>$1</h3>');
+            content = content.replace(/```(.*?)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+            content = content.replace(/\* (.*?)\n/g, '• $1<br>');
+
+            bubble.innerHTML = `
+                <div class="msg-author">${msg.from_agent || 'SISTEMA'}</div>
+                <div class="msg-text">${content}</div>
+            `;
+            logs.appendChild(bubble);
+            logs.scrollTop = logs.scrollHeight;
         }
 
         window.onload = () => { connect(); };

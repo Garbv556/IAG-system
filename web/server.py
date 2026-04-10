@@ -39,6 +39,7 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 from core.iag_central import IAGCentral
 from core.refinement import RefinementEngine
+from core.web_researcher import WebResearcher
 from agents import (
     LeaoAgent, TigreAgent, ElefanteAgent, HipoAgent, PolvoAgent,
     LoboAgent, TubaraoAgent, OrcaAgent, RinoceronteAgent, FalcaoAgent,
@@ -63,10 +64,39 @@ refinement_animals = None
 refinement_pokemons = None
 connected_clients: List[WebSocket] = []
 active_simulations: Dict[str, asyncio.Task] = {}
+web_researcher = WebResearcher()
+systems_active = {"animals": True, "pokemons": True}
+POWER_STATES_FILE = os.path.join(parent_dir, "core", "power_states.json")
+
+def load_power_states():
+    global systems_active
+    if os.path.exists(POWER_STATES_FILE):
+        try:
+            with open(POWER_STATES_FILE, "r") as f:
+                data = json.load(f)
+                systems_active = data.get("systems", {"animals": True, "pokemons": True})
+                return data.get("agents", {})
+        except Exception as e:
+            print(f"[SERVER] Erro ao carregar estados: {e}")
+    return {}
+
+def save_power_states():
+    try:
+        agent_states = {}
+        for aid, a in iag_animals.agents.items(): agent_states[aid] = getattr(a, 'active', True)
+        for aid, a in iag_pokemons.agents.items(): agent_states[aid] = getattr(a, 'active', True)
+        
+        with open(POWER_STATES_FILE, "w") as f:
+            json.dump({"systems": systems_active, "agents": agent_states}, f, indent=4)
+    except Exception as e:
+        print(f"[SERVER] Erro ao salvar estados: {e}")
 
 def initialize_iags():
     global iag_animals, iag_pokemons, refinement_animals, refinement_pokemons
     print("[SERVER] Inicializando ecossistemas IAG...")
+    
+    saved_agents = load_power_states()
+    
     # Animais
     iag_animals = IAGCentral()
     refinement_animals = RefinementEngine('animals')
@@ -79,6 +109,9 @@ def initialize_iags():
         CanguruAgent("canguru"), BisaoAgent("bisao")
     ]
     for agent in agents_anim:
+        # Aplicar estado salvo
+        if agent.agent_id in saved_agents:
+            agent.active = saved_agents[agent.agent_id]
         iag_animals.register_agent(agent.agent_id, agent)
         
     # Pokemons
@@ -93,6 +126,9 @@ def initialize_iags():
         KangaskhanAgent("kangaskhan"), BouffalantAgent("bouffalant")
     ]
     for agent in agents_poke:
+        # Aplicar estado salvo
+        if agent.agent_id in saved_agents:
+            agent.active = saved_agents[agent.agent_id]
         iag_pokemons.register_agent(agent.agent_id, agent)
 
 async def broadcast_message(message: dict):
@@ -114,33 +150,35 @@ async def call_llm(provider: str, api_key: str, prompt: str) -> str:
         try:
             genai.configure(api_key=api_key)
             model = genai.GenerativeModel('gemini-pro')
-            response = await asyncio.to_thread(model.generate_content, prompt)
+            # Prompt reforçado para Tópicos + Código (Matrix Blue)
+            enhanced_prompt = (
+                f"{prompt}\n\n"
+                "REGRAS DE FORMATAÇÃO ESTRITA:\n"
+                "1. Use apenas Tópicos (###) e Bullet Points para explicar.\n"
+                "2. Sempre inclua um bloco de código (```language) se o tema for técnico ou segurança.\n"
+                "3. Responda de forma concisa e direta, simulando um download de dados mentais."
+            )
+            response = await asyncio.to_thread(model.generate_content, enhanced_prompt)
             return response.text.strip().replace('"', '').replace('`', '')
         except Exception as e:
             return f"[ERRO_GEMINI: {str(e)[:100]}]"
     return ""
 
 async def perform_web_research(query: str) -> str:
-    """Realiza uma busca no DuckDuckGo para enriquecer o contexto dos agentes."""
-    if not HAS_WEB_SEARCH: return ""
-    try:
-        print(f"[WEB-SEARCH] Consultando rede mundial por: {query}")
-        results = []
-        with DDGS() as ddgs:
-            # Busca livre em toda a rede (Top 5 resultados)
-            for r in ddgs.text(query, max_results=5):
-                results.append(f"ORIGEM: {r['href']}\nCONTEÚDO: {r['body']}")
-        
-        return "\n\n--- INFORMAÇÕES DA WEB (TEMPO REAL) ---\n" + "\n---\n".join(results)
-    except Exception as e:
-        print(f"[WEB-SEARCH ERROR] {e}")
-        return f"[Aviso: Falha na conexão externa: {e}]"
+    """Invoca o motor central de pesquisa web."""
+    # Como o WebResearcher do core é síncrono, rodamos em thread para não travar o loop
+    return await asyncio.to_thread(web_researcher.learn_from_web, query)
 
 async def simulate_learning_and_conversation(task_name: str, raw_content: str, api_keys: dict, iag_instance, system_name: str):
     """Motor Principal da Matrix: Loop Perpétuo de Especialização Suprema"""
     cycle_num = 0
     try:
         while True:
+            # Check de Sistema Ativo
+            if not systems_active.get(system_name, True):
+                print(f"[MATRIX-{system_name.upper()}] Pausada/Desligada.")
+                break
+
             cycle_num += 1
             print(f"[MATRIX-{system_name.upper()}] Ciclo #{cycle_num} Iniciado: {task_name}")
             text_content = raw_content or "Exploração de novos horizontes teóricos."
@@ -175,123 +213,133 @@ async def simulate_learning_and_conversation(task_name: str, raw_content: str, a
                 "timestamp": datetime.now().isoformat()
             })
 
-        # 1. Extração
-        if raw_content.startswith("data:application/pdf;base64,"):
-            if HAS_PYPDF:
-                try:
-                    b64_data = raw_content.split(",")[1]
-                    pdf_bytes = base64.b64decode(b64_data)
-                    pdf_reader = PyPDF2.PdfReader(io.BytesIO(pdf_bytes), strict=False)
-                    text_content = ""
-                    for i in range(min(3, len(pdf_reader.pages))):
-                        page_text = pdf_reader.pages[i].extract_text()
-                        if page_text: text_content += page_text + "\n"
-                    await broadcast_message({
-                        "type": "system", "system": system_name,
-                        "message": f"✅ PDF Extraído com sucesso. {len(text_content)} caracteres localizados.",
-                        "timestamp": datetime.now().isoformat()
-                    })
-                except Exception as e:
-                    text_content = f"Falha PDF: {e}"
-            else:
-                text_content = "PyPDF2 não disponível no servidor."
+            # 1. Extração
+            if raw_content.startswith("data:application/pdf;base64,"):
+                if HAS_PYPDF:
+                    try:
+                        b64_data = raw_content.split(",")[1]
+                        pdf_bytes = base64.b64decode(b64_data)
+                        pdf_reader = PyPDF2.PdfReader(io.BytesIO(pdf_bytes), strict=False)
+                        text_content = ""
+                        for i in range(min(3, len(pdf_reader.pages))):
+                            page_text = pdf_reader.pages[i].extract_text()
+                            if page_text: text_content += page_text + "\n"
+                        await broadcast_message({
+                            "type": "system", "system": system_name,
+                            "message": f"✅ PDF Extraído com sucesso. {len(text_content)} caracteres localizados.",
+                            "timestamp": datetime.now().isoformat()
+                        })
+                    except Exception as e:
+                        text_content = f"Falha PDF: {e}"
+                else:
+                    text_content = "PyPDF2 não disponível no servidor."
 
-        # 2. Refinamento e Sincronia
-        await broadcast_message({
-            "type": "system", "system": system_name,
-            "message": "🌀 FASE 2: Sincronizando Frequências Rítmicas dos Agentes...",
-            "timestamp": datetime.now().isoformat()
-        })
-        
-        engine = refinement_animals if system_name == 'animals' else refinement_pokemons
-        masteries_snapshot = {aid: a.get_proficiency(task_name) for aid, a in iag_instance.agents.items()}
-        
-        refinement_events = []
-        if engine:
-            try:
-                refinement_events = engine.run_cycle(masteries_snapshot)
-            except Exception as e:
-                print(f"Refinement error: {e}")
-
-        for ev in refinement_events:
+            # 2. Refinamento e Sincronia
             await broadcast_message({
-                "type": "refinement", "system": system_name,
-                "message": f"[{ev['reason']}] {ev['log']}",
+                "type": "system", "system": system_name,
+                "message": "🌀 FASE 2: Sincronizando Frequências Rítmicas dos Agentes...",
                 "timestamp": datetime.now().isoformat()
             })
-            await asyncio.sleep(0.05)
             
-        solo_speed = engine.global_params["solo_speed_multiplier"] if engine else 1.0
-        group_boost = engine.global_params["group_boost_multiplier"] if engine else 1.0
-        
-        # 3. Aprendizado Progressivo
-        await broadcast_message({
-            "type": "system", "system": system_name,
-            "message": f"🧠 FASE 3: Processando Cargas Neurais (Iteração #{cycle_num})...",
-            "timestamp": datetime.now().isoformat()
-        })
+            engine = refinement_animals if system_name == 'animals' else refinement_pokemons
+            masteries_snapshot = {aid: a.get_proficiency(task_name) for aid, a in iag_instance.agents.items()}
+            
+            refinement_events = []
+            if engine:
+                try:
+                    refinement_events = engine.run_cycle(masteries_snapshot)
+                except Exception as e:
+                    print(f"Refinement error: {e}")
 
-        learning_results = {}
-        for agent_id, agent in iag_instance.agents.items():
-            current_p = agent.knowledge.get(task_name, 0.1)
-            gap = 1.0 - current_p
-            # Ganho ponderado para maestria final
-            base_gain = (agent.learn(task_name, text_content[:500]) or 0.1) * 0.4
-            new_p = min(1.0, current_p + (base_gain * gap))
-            agent.knowledge[task_name] = new_p
-            learning_results[agent_id] = {"proficiency": new_p, "animal": agent.animal_name}
-            
-            if random.random() > 0.7: # Reduzir spam
+            for ev in refinement_events:
                 await broadcast_message({
-                    "type": "learning", "system": system_name,
-                    "agent_id": agent_id, "animal": agent.animal_name, "task": task_name,
-                    "proficiency": round(new_p, 3), "timestamp": datetime.now().isoformat()
+                    "type": "refinement", "system": system_name,
+                    "message": f"[{ev['reason']}] {ev['log']}",
+                    "timestamp": datetime.now().isoformat()
                 })
-            await asyncio.sleep(0.05)
+                await asyncio.sleep(0.05)
+                
+            # 3. Aprendizado Progressivo
+            await broadcast_message({
+                "type": "system", "system": system_name,
+                "message": f"🧠 FASE 3: Processando Cargas Neurais (Iteração #{cycle_num})...",
+                "timestamp": datetime.now().isoformat()
+            })
 
-        # 4. Diálogo de Peer-Learning
-        if not learning_results: return
-        sorted_results = sorted(learning_results.items(), key=lambda x: x[1]["proficiency"], reverse=True)
-        best_id, worst_id = sorted_results[0][0], sorted_results[-1][0]
-        
-        helper = iag_instance.agents[best_id]
-        learner = iag_instance.agents[worst_id]
-        
-        await broadcast_message({
-            "type": "system", "system": system_name,
-            "message": "💬 FASE 4: Acionando IA para Diálogo de Feedback...",
-            "timestamp": datetime.now().isoformat()
-        })
-        
-        # Simulação de Diálogo (Fallback Robusto)
-        helper_msg = f"🐾 [AVISO] {learner.animal_name}, observe o padrão de '{text_content[:30]}...'! Use seu instinto!"
-        learner_msg = f"🐺 Entendido! Vou fortalecer minha defesa e focar nos detalhes."
+            learning_results = {}
+            for agent_id, agent in iag_instance.agents.items():
+                if not getattr(agent, 'active', True): continue 
 
-        # Se houver Gemini
-        if api_keys and api_keys.get('gemini'):
-            prompt = f"Roleplay: {helper.animal_name} ensinando {learner.animal_name} sobre {task_name}. Curto."
-            res = await call_llm('gemini', api_keys['gemini'], prompt)
-            if res and not res.startswith("[ERRO"): helper_msg = res
+                current_p = agent.get_proficiency(task_name)
+                gap = 1.0 - current_p
+                base_gain = (agent.learn(task_name, text_content[:500]) or 0.1) * 0.4
+                new_p = min(1.0, current_p + (base_gain * gap))
+                agent.knowledge[task_name] = new_p
+                learning_results[agent_id] = {"proficiency": new_p, "animal": agent.animal_name}
+                
+                if random.random() > 0.7: 
+                    await broadcast_message({
+                        "type": "learning", "system": system_name,
+                        "agent_id": agent_id, "animal": agent.animal_name, "task": task_name,
+                        "proficiency": round(new_p, 3), "timestamp": datetime.now().isoformat()
+                    })
+                await asyncio.sleep(0.05)
 
-        await broadcast_message({
-            "type": "conversation", "system": system_name,
-            "from_agent": helper.animal_name, "to_agent": learner.animal_name,
-            "message": helper_msg, "is_helper": True, "timestamp": datetime.now().isoformat()
-        })
-        await asyncio.sleep(1.5)
-        await broadcast_message({
-            "type": "conversation", "system": system_name,
-            "from_agent": learner.animal_name, "to_agent": helper.animal_name,
-            "message": learner_msg, "is_helper": False, "timestamp": datetime.now().isoformat()
-        })
+            # 4. Diálogo de Peer-Learning
+            active_results = {aid: data for aid, data in learning_results.items() 
+                             if getattr(iag_instance.agents[aid], 'active', True)}
+            
+            if not active_results: 
+                await asyncio.sleep(8)
+                continue
+                
+            sorted_results = sorted(active_results.items(), key=lambda x: x[1]["proficiency"], reverse=True)
+            best_id, worst_id = sorted_results[0][0], sorted_results[-1][0]
+            
+            helper = iag_instance.agents[best_id]
+            learner = iag_instance.agents[worst_id]
+            
+            await broadcast_message({
+                "type": "system", "system": system_name,
+                "message": "💬 FASE 4: Acionando IA para Diálogo de Feedback...",
+                "timestamp": datetime.now().isoformat()
+            })
+            
+            helper_msg = f"🐾 [AVISO] {learner.animal_name}, observe o padrão de '{text_content[:30]}...'! Use seu instinto!"
+            learner_msg = f"🐺 Entendido! Vou fortalecer minha defesa e focar nos detalhes."
 
-        await broadcast_message({
-            "type": "system", "system": system_name,
-            "message": f"⌛ Ciclo #{cycle_num} finalizado. Hibernação de 8s para consolidação...",
-            "cycle": cycle_num,
-            "timestamp": datetime.now().isoformat()
-        })
-        await asyncio.sleep(8) 
+            if api_keys and api_keys.get('gemini_key'):
+                prompt = f"Roleplay: {helper.animal_name} ensinando {learner.animal_name} sobre {task_name}. Curto."
+                
+                # Iniciar Fluxo Visual
+                await broadcast_message({"type": "data_flow", "agent_id": best_id, "system": system_name, "active": True})
+                
+                res = await call_llm('gemini', api_keys['gemini_key'], prompt)
+                
+                # Parar Fluxo Visual
+                await broadcast_message({"type": "data_flow", "agent_id": best_id, "system": system_name, "active": False})
+                
+                if res and not res.startswith("[ERRO"): helper_msg = res
+
+            await broadcast_message({
+                "type": "conversation", "system": system_name,
+                "from_agent": helper.animal_name, "to_agent": learner.animal_name,
+                "message": helper_msg, "is_helper": True, "timestamp": datetime.now().isoformat()
+            })
+            await asyncio.sleep(1.5)
+            await broadcast_message({
+                "type": "conversation", "system": system_name,
+                "from_agent": learner.animal_name, "to_agent": helper.animal_name,
+                "message": learner_msg, "is_helper": False, "timestamp": datetime.now().isoformat()
+            })
+
+            await broadcast_message({
+                "type": "system", "system": system_name,
+                "message": f"⌛ Ciclo #{cycle_num} finalizado. Hibernação de 8s para consolidação...",
+                "cycle": cycle_num,
+                "timestamp": datetime.now().isoformat()
+            })
+            await asyncio.sleep(8) 
 
     except asyncio.CancelledError:
         print(f"[MATRIX-{system_name.upper()}] Sincronia Encerrada pelo Usuário.")
@@ -318,11 +366,14 @@ async def websocket_endpoint(websocket: WebSocket):
         connected_clients.append(websocket)
         
         def get_st(inst):
-            return [{"id": aid, "animal": a.animal_name, "knowledge": list(a.knowledge.keys())} 
+            return [{"id": aid, "animal": a.animal_name, "active": getattr(a, 'active', True), "knowledge": list(a.knowledge.keys())} 
                    for aid, a in inst.agents.items()]
 
         await websocket.send_json({
-            "type": "init", "animals": get_st(iag_animals), "pokemons": get_st(iag_pokemons)
+            "type": "init", 
+            "animals": get_st(iag_animals), 
+            "pokemons": get_st(iag_pokemons),
+            "systems_active": systems_active
         })
         
         while True:
@@ -354,6 +405,27 @@ async def websocket_endpoint(websocket: WebSocket):
 
             if msg.get("action") == "direct_chat":
                 asyncio.create_task(handle_direct_chat(msg, websocket))
+
+            if msg.get("action") == "toggle_agent":
+                sys_name, aid = msg["system"], msg["agent_id"]
+                iag = iag_animals if sys_name == "animals" else iag_pokemons
+                if aid in iag.agents:
+                    iag.agents[aid].active = not getattr(iag.agents[aid], 'active', True)
+                    save_power_states() # Persistir no HD
+                    await broadcast_message({
+                        "type": "agent_status", "system": sys_name, 
+                        "agent_id": aid, "active": iag.agents[aid].active
+                    })
+
+            if msg.get("action") == "toggle_system":
+                sys_name = msg["system"]
+                systems_active[sys_name] = not systems_active.get(sys_name, True)
+                save_power_states() # Persistir no HD
+                if not systems_active[sys_name] and sys_name in active_simulations:
+                    active_simulations[sys_name].cancel()
+                await broadcast_message({
+                    "type": "system_status", "system": sys_name, "active": systems_active[sys_name]
+                })
 
     except Exception as e:
         print(f"WS Erro: {e}")
@@ -417,5 +489,4 @@ REGRAS DE RESPOSTA:
         print(f"Erro no Chat Direto: {e}")
 
 if __name__ == "__main__":
-    initialize_iags()
     uvicorn.run(app, host="0.0.0.0", port=8000)

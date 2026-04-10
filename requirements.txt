@@ -1,5 +1,8 @@
 fastapi
-uvicorn[standard]
+uvicorn
+python-multipart
 google-generativeai
+duckduckgo-search>=5.3.0
+python-dotenv>=1.0.0
+tenacity>=8.2.0
 PyPDF2
-sse-starlette

@@ -36,6 +36,7 @@ class AnimalAgent(ABC):
         self.state = State.SOLO
         self.knowledge: Dict[str, float] = {}  # topic -> proficiency (0-1)
         self.messages_received: List[Dict] = []
+        self.active = True
         self.learning_history: List[Dict] = []
         
         # Conhecimento básico de programação (todos sabem o básico)
