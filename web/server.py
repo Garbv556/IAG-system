@@ -56,8 +56,9 @@ from agents_pokemon import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Gerencia o ciclo de vida da Matrix e do WebResearcher Turbo v2.0."""
+    """Gerencia o ciclo de vida da aplicação"""
     global web_researcher
+    # Startup
     web_researcher = WebResearcher()
     await web_researcher.initialize()
     initialize_iags()
@@ -65,11 +66,21 @@ async def lifespan(app: FastAPI):
     
     yield  # Matrix em funcionamento
     
+    # Shutdown
     if web_researcher:
         await web_researcher.close()
-        print("[SERVER] WebResearcher Desconectado")
+    print("[SERVER] WebResearcher Desconectado")
 
 app = FastAPI(title="Sistema Duplo - IAG com LLM", lifespan=lifespan)
+
+@app.get("/test-web")
+async def test_web_search(q: str = "Python"):
+    """Testa a busca web"""
+    if not web_researcher:
+        return {"error": "WebResearcher não inicializado"}
+    
+    result = await web_researcher.learn_from_web(q, max_results=2)
+    return {"query": q, "result": result}
 app.mount("/static", StaticFiles(directory=current_dir), name="static")
 
 iag_animals: IAGCentral = None
