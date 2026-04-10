@@ -56,26 +56,26 @@ from agents_pokemon import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Gerencia o ciclo de vida da aplicação"""
+    """Gerencia ciclo de vida da aplicação"""
     global web_researcher
     # Startup
     web_researcher = WebResearcher()
     await web_researcher.initialize()
     initialize_iags()
-    print("[SERVER] WebResearcher e Ecossistemas Inicializados")
+    print("✅ Sistema inicializado com WebResearcher")
     
-    yield  # Matrix em funcionamento
+    yield  # App rodando
     
     # Shutdown
     if web_researcher:
         await web_researcher.close()
-    print("[SERVER] WebResearcher Desconectado")
+    print("🔌 Sistema finalizado")
 
+# Crie o app com lifespan
 app = FastAPI(title="Sistema Duplo - IAG com LLM", lifespan=lifespan)
-
 @app.get("/test-web")
 async def test_web_search(q: str = "Python"):
-    """Testa a busca web"""
+    """Testa a busca web real"""
     if not web_researcher:
         return {"error": "WebResearcher não inicializado"}
     
