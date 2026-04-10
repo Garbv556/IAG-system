@@ -18,6 +18,7 @@
             --box-shadow: rgba(0,0,0,0.4);
             --anim-primary: #3b82f6;
             --poke-primary: #8b5cf6;
+            --neon-green: #10b981;
             --glass-border: rgba(255, 255, 255, 0.1);
             --glass-bg: rgba(30, 41, 59, 0.7);
         }
@@ -73,8 +74,55 @@
             cursor: pointer;
             font-weight: 600;
             font-size: 0.85rem;
+            transition: all 0.3s;
         }
-        .btn:hover { filter: brightness(1.2); }
+        .btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+        .btn.btn-stop { background: #ef4444; margin-left: 5px; }
+
+        /* Sync Button Central (Fusion Ring design) */
+        .fusion-center {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 200;
+        }
+        .btn-sync {
+            background: linear-gradient(135deg, #0ea5e9, #a855f7);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.2);
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+            transition: all 0.4s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.8rem;
+        }
+        .btn-sync:hover { transform: scale(1.1); box-shadow: 0 0 40px rgba(168, 85, 247, 0.6); }
+
+        /* Panel Bottom Controls */
+        .panel-footer {
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border-top: 1px solid var(--glass-border);
+        }
+        .control-row { display: flex; gap: 8px; }
+        .control-row input {
+            flex: 1;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+        .btn-search { background: #00f3ff; color: black; font-weight: 900; }
+        .btn-upload { background: #eab308; color: black; font-weight: 900; }
 
         .btn-micro {
             background: rgba(255,255,255,0.1);
@@ -130,8 +178,11 @@
         /* Graph Area */
         .graph-wrapper {
             flex: 1.5;
-            position: relative;
+            position: relative; /* ESSENCIAL PARA POSICIONAR OS NÓS HTML */
             background: radial-gradient(circle at center, rgba(30, 41, 59, 0.4) 0%, transparent 80%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .graph-svg { width: 100%; height: 100%; position: absolute; top:0; left:0; }
         
@@ -161,6 +212,7 @@
             transform: translate(-50%, -50%);
             width: 44px; height: 44px;
             background: var(--bg-panel);
+            backdrop-filter: blur(10px);
             border: 2px solid var(--glass-border);
             border-radius: 50%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -168,21 +220,38 @@
             z-index: 5;
             cursor: pointer;
         }
-        .agent-node:hover { transform: translate(-50%, -50%) scale(1.2); z-index: 20; border-color: white; }
+        .agent-node:hover { transform: translate(-50%, -50%) scale(1.15); z-index: 20; border-color: white; }
         .agent-node.active-learning { border-width: 3px; animation: glow 1.5s infinite alternate; }
-        .animals-side .agent-node.active-learning { border-color: var(--anim-primary); box-shadow: 0 0 15px var(--anim-primary); }
-        .pokemons-side .agent-node.active-learning { border-color: var(--poke-primary); box-shadow: 0 0 15px var(--poke-primary); }
+        .agent-node.inactive { opacity: 0.25; filter: grayscale(1); }
+
+        .agent-toggle-btn {
+            position: absolute;
+            bottom: -5px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #10b981;
+            border: 2px solid var(--bg-main);
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.2s;
+            box-shadow: 0 0 5px rgba(16, 185, 129, 0.4);
+        }
+        .agent-node.inactive .agent-toggle-btn {
+            background: #ef4444;
+            box-shadow: 0 0 5px rgba(239, 68, 68, 0.4);
+        }
 
         @keyframes glow { from { opacity: 0.7; } to { opacity: 1; } }
 
         .node-emoji { font-size: 1.2rem; }
         .node-name {
-            position: absolute; bottom: -18px; font-size: 0.6rem; color: var(--text-muted);
+            position: absolute; bottom: -20px; font-size: 0.6rem; color: var(--text-muted);
             white-space: nowrap; pointer-events: none;
         }
         .node-prof {
-            position: absolute; top: -10px; background: #10b981; color: white;
-            padding: 1px 4px; border-radius: 8px; font-size: 0.55rem; font-weight: bold;
+            position: absolute; top: -12px; background: var(--neon-green); color: black;
+            padding: 1px 4px; border-radius: 8px; font-size: 0.55rem; font-weight: 900;
         }
 
         /* Power Controls */
@@ -198,20 +267,6 @@
             margin-left: 10px;
         }
         .power-btn-system.off { color: #ef4444; border-color: #ef4444; }
-
-        .agent-node.inactive {
-            opacity: 0.25;
-            filter: grayscale(1);
-            pointer-events: auto;
-        }
-        .node-power-indicator {
-            position: absolute; bottom: 0; right: 0;
-            width: 10px; height: 10px;
-            border-radius: 50%;
-            background: #10b981;
-            border: 2px solid var(--bg-panel);
-        }
-        .agent-node.inactive .node-power-indicator { background: #ef4444; }
 
         /* Data Flow Sparks */
         .spark-particle {
@@ -289,13 +344,13 @@
             position: fixed;
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
-            border: 1px solid var(--anim-primary);
+            border: 2px solid var(--anim-primary);
             border-radius: 12px;
-            width: 280px;
-            z-index: 2000;
+            width: 320px;
+            z-index: 5000; /* Prioridade máxima */
             display: none;
             flex-direction: column;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
             animation: fadeIn 0.3s ease-out;
         }
         .interview-header {
@@ -342,21 +397,57 @@
         .msg-user { background: rgba(59, 130, 246, 0.4); align-self: flex-end; border: 1px solid var(--anim-primary); color: #fff; }
         .msg-agent { background: rgba(255, 255, 255, 0.1); align-self: flex-start; border: 1px solid var(--glass-border); color: #fff; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* API Configuration Modal */
+        .api-modal {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1e293b;
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            width: 450px;
+            padding: 20px;
+            z-index: 3000;
+            display: none;
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.4);
+        }
+        .api-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .api-row { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .api-row label { flex: 1; font-size: 0.85rem; }
+        .api-row input[type="text"], .api-row input[type="password"] {
+            flex: 2; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border);
+            color: white; padding: 6px; border-radius: 4px; font-size: 0.8rem;
+        }
+        .api-row .checkbox-group { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; }
+
+        /* Log Colors */
+        .msg-system-info { color: #00f3ff; }
+        .msg-system-success { color: #10b981; }
+        .msg-system-error { color: #ef4444; font-weight: bold; }
+        .msg-system-warning { color: #f59e0b; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translate(-50%, -45%); } to { opacity: 1; transform: translate(-50%, -50%); } }
 
     </style>
 </head>
 <body>
 
     <header class="header">
-        <div style="font-weight: 900; font-size: 0.9rem;">IAG <span style="color:var(--anim-primary)">MATRIX</span></div>
+        <div style="font-weight: 900; font-size: 0.9rem;">IAG <span style="color:var(--anim-primary)">MATRIX</span> v3.0</div>
         <div class="input-group">
             <input type="password" id="apiKey" placeholder="Gemini API Key" style="width: 140px;">
-            <input type="text" id="topic" placeholder="Tópico de Pesquisa..." style="width: 200px;">
-            <button class="btn" onclick="startLearning()">INICIAR SINCRONIA</button>
+            <input type="text" id="topic" placeholder="Tópico de Pesquisa Global..." style="width: 200px;">
+            <button class="btn" onclick="openApiModal()" style="background: transparent; border: 1px solid var(--anim-primary); color: var(--anim-primary); margin-right: 5px;">⚙️ Configurar APIs</button>
+            <button class="btn" onclick="startLearning()">▶ INICIAR</button>
+            <button class="btn btn-stop" onclick="stopMatrix()">■ PARAR</button>
         </div>
         <div onclick="toggleTheme()" style="cursor:pointer; opacity: 0.6;">🌗</div>
     </header>
+
+    <!-- Fusion Button Center -->
+    <div class="fusion-center">
+        <button class="btn-sync" onclick="syncSystems()">🔗 SINCRONIZAR SISTEMAS</button>
+    </div>
 
     <main class="main-dashboard">
         <!-- Lado dos Animais -->
@@ -379,6 +470,18 @@
             <div class="chat-panel">
                 <div class="chat-logs" id="chat-animals">
                     <div class="refinement-note">Aguardando sinais bio-digitais...</div>
+                </div>
+            </div>
+            <div class="panel-footer">
+                <div class="control-row">
+                    <input type="text" id="query-animals" placeholder="Pergunta para Córtex...">
+                    <input type="text" id="url-animals" placeholder="URL para analisar...">
+                </div>
+                <div class="control-row">
+                    <button class="btn btn-search" style="flex:2" onclick="panelSearch('animals')">🔍 BUSCAR</button>
+                    <label class="btn btn-upload" style="flex:1; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                        📂 UPLOAD <input type="file" id="file-animals" hidden onchange="handleFile(event, 'animals')">
+                    </label>
                 </div>
             </div>
         </section>
@@ -405,6 +508,18 @@
                     <div class="refinement-note">Sintonizando frequencias elementares...</div>
                 </div>
             </div>
+            <div class="panel-footer">
+                <div class="control-row">
+                    <input type="text" id="query-pokemons" placeholder="Pergunta para Nexo...">
+                    <input type="text" id="url-pokemons" placeholder="URL para analisar...">
+                </div>
+                <div class="control-row">
+                    <button class="btn btn-search" style="flex:2; background: #00f3ff;" onclick="panelSearch('pokemons')">🔍 BUSCAR</button>
+                    <label class="btn btn-upload" style="flex:1; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                        📂 UPLOAD <input type="file" id="file-pokemons" hidden onchange="handleFile(event, 'pokemons')">
+                    </label>
+                </div>
+            </div>
         </section>
     </main>
 
@@ -413,10 +528,37 @@
         <span id="status-text">DISCONNECTED</span>
     </div>
 
+    <div id="apiModal" class="api-modal">
+        <div class="api-modal-header">
+            <h3 style="font-size: 1rem;">⚙️ Configuração de APIs de IA</h3>
+            <button class="btn-micro" onclick="closeApiModal()">X</button>
+        </div>
+        <div class="api-row">
+            <label>🤖 Google Gemini</label>
+            <input type="password" id="api-gemini" placeholder="Cole sua API Key aqui">
+            <div class="checkbox-group"><input type="checkbox" id="api-gemini-active" checked> Ativo</div>
+        </div>
+        <div class="api-row">
+            <label>🧠 OpenAI GPT-4</label>
+            <input type="password" id="api-openai" placeholder="sk-...">
+            <div class="checkbox-group"><input type="checkbox" id="api-openai-active"> Ativo</div>
+        </div>
+        <div class="api-row">
+            <label>🎯 Anthropic Claude</label>
+            <input type="password" id="api-anthropic" placeholder="sk-ant-...">
+            <div class="checkbox-group"><input type="checkbox" id="api-anthropic-active"> Ativo</div>
+        </div>
+        <div class="api-row">
+            <label>🎆 Hugging Face</label>
+            <input type="password" id="api-hugging" placeholder="hf_...">
+            <div class="checkbox-group"><input type="checkbox" id="api-hugging-active"> Ativo</div>
+        </div>
+        <button class="btn" style="width: 100%; margin-top: 10px;" onclick="saveApiConfigs()">💾 SALVAR CONFIGURAÇÕES</button>
+    </div>
     <div id="interviewModal" class="interview-modal">
         <div class="interview-header">
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span id="interviewTitle">Entrevista</span>
+                <span id="interviewTitle">Comunicação</span>
                 <button id="btn-pwr-chat" class="power-btn-system" style="margin: 0; padding: 1px 6px; font-size: 0.55rem;">ON</button>
             </div>
             <button class="btn-micro" onclick="closeInterview()">X</button>
@@ -495,10 +637,9 @@
         function handleMessage(msg) {
             console.log("Recebido:", msg);
             if (msg.type === 'init') {
-                initSystem(msg.animals, 'animals', '#svg-animals', 'area-animals');
-                initSystem(msg.pokemons, 'pokemons', '#svg-pokemons', 'area-pokemons');
+                initGraph(msg.animals, 'animals', '#svg-animals', 'area-animals');
+                initGraph(msg.pokemons, 'pokemons', '#svg-pokemons', 'area-pokemons');
                 
-                // Aplicar estado persistido dos sistemas
                 if (msg.systems_active) {
                     Object.keys(msg.systems_active).forEach(sys => {
                         const active = msg.systems_active[sys];
@@ -545,75 +686,86 @@
             }
         }
 
-        function initSystem(agents, systemName, svgId, areaId) {
+        function initGraph(agents, sysName, svgId, areaId) {
             const area = document.getElementById(areaId);
             const svg = d3.select(svgId);
-            svg.selectAll("*").remove();
-            area.querySelectorAll('.agent-node').forEach(n => n.remove());
+            
+            // Garantir dimensões robustas
+            const rect = area.getBoundingClientRect();
+            let w = rect.width || area.clientWidth;
+            let h = rect.height || area.clientHeight;
+            
+            // Fallback para evitar amontoamento (0,0) se renderização ainda não ocorreu
+            if (w < 100) {
+                console.warn(`[GRAPH] Dimensões inválidas para ${sysName}, tentando novamente em 200ms...`);
+                setTimeout(() => initGraph(agents, sysName, svgId, areaId), 200);
+                return;
+            }
 
-            const w = area.clientWidth;
-            const h = area.clientHeight;
             const midX = w / 2;
             const midY = h / 2;
             const minDim = Math.min(w, h);
 
-            // Background Decorative Rings (Scaled down)
-            [0.15, 0.32, 0.48].forEach(r => {
+            svg.selectAll("*").remove();
+            area.querySelectorAll('.agent-node').forEach(n => n.remove());
+
+            // Background Decorative Rings (v2.5 pattern)
+            [0.18, 0.35, 0.52].forEach(r => {
                 svg.append("circle")
                     .attr("cx", midX).attr("cy", midY)
-                    .attr("r", minDim * r)
-                    .attr("class", "ring-decor");
+                    .attr("r", minDim * r * 0.7)
+                    .attr("stroke", "rgba(255,255,255,0.03)")
+                    .attr("fill", "none");
             });
 
-            // Split layers: Inner (6), Outer (Rest) - Scaled down
+            // Split layers: Inner (6), Outer (Rest) - Aumentando raios para evitar amontoamento
             const layers = [
-                { items: agents.slice(0, 6), radius: minDim * 0.16 },
-                { items: agents.slice(6), radius: minDim * 0.33 }
+                { items: agents.slice(0, 6), radius: minDim * 0.25 },
+                { items: agents.slice(6), radius: minDim * 0.45 }
             ];
 
             layers.forEach((layer, layerIdx) => {
                 const total = layer.items.length;
                 layer.items.forEach((agent, i) => {
-                    agentsDict[systemName][agent.id] = agent;
-                    const angle = (i / total) * 2 * Math.PI - (Math.PI / 2); // Start from top
+                    const angle = (i / total) * 2 * Math.PI - (Math.PI / 2);
                     const x = midX + layer.radius * Math.cos(angle);
                     const y = midY + layer.radius * Math.sin(angle);
 
-                    // Line from center
                     svg.append("line")
                         .attr("x1", midX).attr("y1", midY)
                         .attr("x2", x).attr("y2", y)
-                        .attr("stroke", "rgba(255,255,255,0.02)")
-                        .attr("id", `link-${systemName}-${agent.id}`);
+                        .attr("stroke", "rgba(255,255,255,0.04)")
+                        .attr("id", `link-${sysName}-${agent.id}`);
 
-                    // Node (Scaled down slightly)
                     const node = document.createElement('div');
                     node.className = 'agent-node';
                     if (agent.active === false) node.classList.add('inactive');
                     
-                    node.id = `node-${systemName}-${agent.id}`;
+                    node.id = `node-${sysName}-${agent.id}`;
                     node.style.left = `${x}px`;
                     node.style.top = `${y}px`;
-                    node.style.width = layerIdx === 0 ? '42px' : '34px'; 
-                    node.style.height = layerIdx === 0 ? '42px' : '34px';
+                    node.style.width = layerIdx === 0 ? '44px' : '36px'; 
+                    node.style.height = layerIdx === 0 ? '44px' : '36px';
                     
                     node.innerHTML = `
-                        <div class="node-prof" id="prof-${systemName}-${agent.id}">0%</div>
-                        <div class="node-emoji">${getEmoji(agent.animal, systemName)}</div>
-                        <div class="node-name" style="font-size: ${layerIdx === 0 ? '0.6rem' : '0.5rem'}">${agent.animal}</div>
-                        <div class="node-power-indicator"></div>
+                        <div class="node-prof" id="prof-${sysName}-${agent.id}">${Math.round((agent.proficiency || 0)*100)}%</div>
+                        <div class="node-emoji">${getEmoji(agent.animal, sysName)}</div>
+                        <div class="node-name" style="font-size: ${layerIdx === 0 ? '0.65rem' : '0.55rem'}">${agent.animal}</div>
+                        <div class="agent-toggle-btn" onclick="toggleAgentPowerOnNode('${sysName}', '${agent.id}', event)"></div>
                     `;
                     node.onclick = (e) => {
-                        // Se clicar com ALT, desliga/liga o agente
-                        if (e.altKey) {
-                            toggleAgentPower(systemName, agent.id);
-                        } else {
-                            openInterview(e, agent.id, agent.animal, systemName);
+                        if (!e.target.classList.contains('agent-toggle-btn')) {
+                            openInterview(e, agent.id, agent.animal, sysName);
                         }
                     };
                     area.appendChild(node);
                 });
             });
+        }
+
+        function toggleAgentPowerOnNode(sysName, agentId, event) {
+            event.stopPropagation();
+            toggleAgentPower(sysName, agentId);
         }
 
         function updateNode(id, system, prof, active) {
@@ -636,13 +788,47 @@
 
             const bubble = document.createElement('div');
             bubble.className = `msg-bubble ${data.is_helper ? 'is-helper' : ''}`;
+            
+            let colorClass = "";
+            if (data.message.includes("✅") || data.message.includes("sucesso")) colorClass = "msg-system-success";
+            if (data.message.includes("❌") || data.message.includes("ERRO")) colorClass = "msg-system-error";
+            if (data.message.includes("🔄") || data.message.includes("INICIANDO")) colorClass = "msg-system-info";
+
             bubble.innerHTML = `
                 <div class="msg-author">${data.from_agent || 'SISTEMA'}</div>
-                <div>${data.message}</div>
+                <div class="${colorClass}">${data.message}</div>
             `;
             cont.appendChild(bubble);
             cont.scrollTop = cont.scrollHeight;
         }
+
+        // Modal Functions
+        function openApiModal() { document.getElementById('apiModal').style.display = 'block'; }
+        function closeApiModal() { document.getElementById('apiModal').style.display = 'none'; }
+        
+        function saveApiConfigs() {
+            const config = {
+                gemini: { key: document.getElementById('api-gemini').value, active: document.getElementById('api-gemini-active').checked },
+                openai: { key: document.getElementById('api-openai').value, active: document.getElementById('api-openai-active').checked },
+                anthropic: { key: document.getElementById('api-anthropic').value, active: document.getElementById('api-anthropic-active').checked },
+                hugging: { key: document.getElementById('api-hugging').value, active: document.getElementById('api-hugging-active').checked }
+            };
+            localStorage.setItem('iag_api_config', JSON.stringify(config));
+            if (config.gemini.key) document.getElementById('apiKey').value = config.gemini.key;
+            alert("Configurações salvas localmente!");
+            closeApiModal();
+        }
+
+        // Load configs
+        window.onload = () => {
+             const saved = localStorage.getItem('iag_api_config');
+             if (saved) {
+                 const cfg = JSON.parse(saved);
+                 document.getElementById('api-gemini').value = cfg.gemini.key || "";
+                 document.getElementById('api-gemini-active').checked = cfg.gemini.active;
+                 if (cfg.gemini.key) document.getElementById('apiKey').value = cfg.gemini.key;
+             }
+        };
 
         function addRefinement(data) {
             const cont = document.getElementById(`chat-${data.system}`);
@@ -658,41 +844,65 @@
             const topicInput = document.getElementById('topic');
             const topic = topicInput.value.trim();
             const key = document.getElementById('apiKey').value.trim();
-            const mainBtn = document.querySelector('.header .btn');
+            const mainBtn = document.querySelector('.header .btn:nth-child(2)');
 
-            if (isMatrixRunning && !targetSystem) {
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ action: 'stop_learning', target_system: null }));
-                }
-                isMatrixRunning = false;
-                mainBtn.textContent = "INICIAR SINCRONIA";
-                mainBtn.style.background = "";
-                return;
-            }
+            if (isMatrixRunning && !targetSystem) return alert("Matrix já está em execução.");
 
             if (!topic && !targetSystem) return alert("Defina um tópico!");
             const systems = targetSystem ? [targetSystem] : ['animals', 'pokemons'];
             
             if (!targetSystem) {
                 isMatrixRunning = true;
-                mainBtn.textContent = "PARAR MATRIX";
-                mainBtn.style.background = "#ef4444";
+                mainBtn.style.opacity = "0.5";
                 currentCycle = 0;
+                addChat({ system: 'animals', message: "🚀 Matrix Ativada - Todos sistemas online", from_agent: "SISTEMA" });
             }
 
             if (ws && ws.readyState === WebSocket.OPEN) {
                 systems.forEach(sys => {
-                    addChat({ system: sys, message: "📡 Comando de Evolução Perpétua enviado...", from_agent: "SISTEMA" });
+                    const content = uploads[sys] || `Expertise sobre ${topic}`;
                     ws.send(JSON.stringify({
                         action: 'start_learning',
                         task: topic || "Auto-Evolução",
-                        content: uploads[sys] || `Expertise sobre ${topic}`,
+                        content: content,
                         api_keys: { gemini_key: key },
                         target_system: sys
                     }));
                 });
-            } else {
-                alert("Conexão WebSocket perdida.");
+            }
+        }
+
+        function stopMatrix() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: 'stop_learning', target_system: null }));
+                isMatrixRunning = false;
+                document.querySelector('.header .btn:nth-child(2)').style.opacity = "1";
+            }
+        }
+
+        function syncSystems() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: 'sync_systems' }));
+            }
+        }
+
+        function panelSearch(sys) {
+            const query = document.getElementById(`query-${sys}`).value;
+            const url = document.getElementById(`url-${sys}`).value;
+            const key = document.getElementById('apiKey').value;
+
+            if (!query && !url) return alert("Digite uma pergunta ou URL.");
+            
+            addChat({ system: sys, message: `🔍 Buscando: "${query || url}"...`, from_agent: "SISTEMA" });
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    action: 'start_learning',
+                    task: query || "Análise de URL",
+                    content: url ? `Analisar conteúdo de: ${url}` : query,
+                    api_keys: { gemini_key: key },
+                    target_system: sys
+                }));
             }
         }
 
@@ -703,20 +913,35 @@
             const btnChat = document.getElementById('btn-pwr-chat');
             const node = document.getElementById(`node-${system}-${id}`);
             
-            document.getElementById('interviewTitle').textContent = `Entrevistando: ${animal}`;
+            document.getElementById('interviewTitle').textContent = `Comunicação: ${animal}`;
             document.getElementById('interviewBody').innerHTML = '';
 
-            // Sincronizar estado inicial do botão no chat
+            // Sincronizar estado real do nó com o botão do modal
             if (btnChat && node) {
                 const isActive = !node.classList.contains('inactive');
                 btnChat.classList.toggle('off', !isActive);
                 btnChat.textContent = isActive ? "ON" : "OFF";
-                btnChat.onclick = () => toggleAgentPower(system, id);
+                // Corrigir a função de clique do botão no modal
+                btnChat.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleAgentPower(system, id);
+                    // Atualizar o botão do modal localmente após o clique para feedback instantâneo
+                    const newActive = btnChat.classList.contains('off'); // Inverteu no toggle do server
+                    btnChat.classList.toggle('off');
+                    btnChat.textContent = btnChat.classList.contains('off') ? "OFF" : "ON";
+                };
             }
             
-            // Posicionar modal perto do clique
-            modal.style.left = `${event.clientX + 10}px`;
-            modal.style.top = `${event.clientY - 50}px`;
+            // Posicionar modal perto do clique mas dentro da tela
+            let posX = event.clientX + 20;
+            let posY = event.clientY - 100;
+            
+            if (posX + 320 > window.innerWidth) posX = window.innerWidth - 340;
+            if (posY + 400 > window.innerHeight) posY = window.innerHeight - 420;
+            if (posY < 0) posY = 20;
+
+            modal.style.left = `${posX}px`;
+            modal.style.top = `${posY}px`;
             modal.style.display = 'flex';
             
             addInterviewMsg(`🐾 Olá! Eu sou o ${animal}. O que você deseja me perguntar sobre nossa missão ou programação?`, 'agent'); // Fallback local

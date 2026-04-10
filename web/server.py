@@ -425,7 +425,14 @@ async def websocket_endpoint(websocket: WebSocket):
                     if sys_name in active_simulations:
                         active_simulations[sys_name].cancel()
                         del active_simulations[sys_name]
-                await broadcast_message({"type": "system", "message": "🛑 MATRIX ENCERRADA.", "system": target or "both"})
+                await broadcast_message({"type": "system", "message": "🛑 MATRIX ENCERRADA.", "status": "stopped", "system": target or "both"})
+
+            if msg.get("action") == "sync_systems":
+                await broadcast_message({"type": "system", "message": "🔄 INICIANDO SINCRONIA GLOBAL...", "system": "both"})
+                # Lógica para forçar um diálogo cruzado no próximo ciclo
+                for sys in ["animals", "pokemons"]:
+                    if sys not in active_simulations:
+                        await broadcast_message({"type": "system", "message": f"⚠️ Sistema {sys} precisa estar ativo para sincronia.", "system": sys})
 
             if msg.get("action") == "direct_chat":
                 asyncio.create_task(handle_direct_chat(msg, websocket))

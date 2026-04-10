@@ -1,6 +1,3 @@
-"""
-WebResearcher - Acesso assíncrono à internet
-"""
 import re
 import asyncio
 import logging
@@ -31,13 +28,13 @@ class WebResearcher:
                 follow_redirects=True,
                 headers=HEADERS
             )
-            logger.info("[WEB] WebResearcher inicializado")
+            logger.info("✅ WebResearcher inicializado")
     
     async def close(self):
         if self.http_client:
             await self.http_client.aclose()
             self.http_client = None
-            logger.info("[WEB] WebResearcher fechado")
+            logger.info("🔌 WebResearcher fechado")
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     async def learn_from_web(self, query: str, max_results: int = 3) -> str:
@@ -45,16 +42,12 @@ class WebResearcher:
         
         async with WEB_REQUEST_SEMAPHORE:
             logger.info(f"🔍 Buscando: {query}")
-            
             try:
-                # Na versão 8.1.1 o DDGS deve ser usado assim:
-                results = await asyncio.to_thread(self._cached_search, query, max_results)
-                
+                results = self._cached_search(query, max_results)
                 if not results:
                     return f"⚠️ Nenhum resultado para: {query}"
                 
                 blocks = [f"🌐 PESQUISA: '{query}'\n{'='*60}"]
-                
                 for i, r in enumerate(results, 1):
                     block = f"\n[{i}] {r.get('title', 'Sem título')}"
                     block += f"\n🔗 {r.get('href', '')}"
@@ -64,13 +57,10 @@ class WebResearcher:
                     if url:
                         content = await self._scrape_url(url)
                         if content:
-                            block += f"\n📖 Conteúdo: {content[:1000]}..."
-                    
+                            block += f"\n📖 Conteúdo: {content[:500]}..."
                     blocks.append(block)
                     await asyncio.sleep(0.5)
-                
                 return "\n".join(blocks)
-                
             except Exception as e:
                 logger.error(f"❌ Erro: {e}")
                 return f"Erro na pesquisa: {str(e)[:200]}"
@@ -87,17 +77,12 @@ class WebResearcher:
     async def _scrape_url(self, url: str) -> str:
         if not self.http_client:
             await self.initialize()
-        
         try:
             response = await self.http_client.get(url)
             response.raise_for_status()
-            
             html = response.text
-            # Limpeza rápida
-            text = re.sub(r'<(script|style|nav|footer)[^>]*>.*?</\1>', '', html, flags=re.DOTALL | re.IGNORECASE)
-            text = re.sub(r'<.*?>', ' ', text)
+            text = re.sub(r'<.*?>', ' ', html)
             text = re.sub(r'\s+', ' ', text).strip()
             return text[:2000]
-            
         except Exception:
             return ""
