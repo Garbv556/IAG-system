@@ -9,12 +9,11 @@ import base64
 import io
 from datetime import datetime
 from typing import Dict, List, Any
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 import uvicorn
-import urllib.request
-import urllib.error
 import random
 import google.generativeai as genai
 import traceback
@@ -55,7 +54,22 @@ from agents_pokemon import (
     KangaskhanAgent, BouffalantAgent
 )
 
-app = FastAPI(title="Sistema Duplo - IAG com LLM")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Gerencia o ciclo de vida da Matrix e do WebResearcher Turbo v2.0."""
+    global web_researcher
+    web_researcher = WebResearcher()
+    await web_researcher.initialize()
+    initialize_iags()
+    print("[SERVER] WebResearcher e Ecossistemas Inicializados")
+    
+    yield  # Matrix em funcionamento
+    
+    if web_researcher:
+        await web_researcher.close()
+        print("[SERVER] WebResearcher Desconectado")
+
+app = FastAPI(title="Sistema Duplo - IAG com LLM", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=current_dir), name="static")
 
 iag_animals: IAGCentral = None
@@ -64,7 +78,7 @@ refinement_animals = None
 refinement_pokemons = None
 connected_clients: List[WebSocket] = []
 active_simulations: Dict[str, asyncio.Task] = {}
-web_researcher = WebResearcher()
+web_researcher: WebResearcher = None
 systems_active = {"animals": True, "pokemons": True}
 POWER_STATES_FILE = os.path.join(parent_dir, "core", "power_states.json")
 
@@ -165,9 +179,10 @@ async def call_llm(provider: str, api_key: str, prompt: str) -> str:
     return ""
 
 async def perform_web_research(query: str) -> str:
-    """Invoca o motor central de pesquisa web."""
-    # Como o WebResearcher do core é síncrono, rodamos em thread para não travar o loop
-    return await asyncio.to_thread(web_researcher.learn_from_web, query)
+    """Invoca o motor central de pesquisa web (ASSÍNCRONO)."""
+    if not web_researcher:
+        return "⚠️ Motor de pesquisa offline."
+    return await web_researcher.learn_from_web(query)
 
 async def simulate_learning_and_conversation(task_name: str, raw_content: str, api_keys: dict, iag_instance, system_name: str):
     """Motor Principal da Matrix: Loop Perpétuo de Especialização Suprema"""
@@ -350,9 +365,7 @@ async def simulate_learning_and_conversation(task_name: str, raw_content: str, a
             "type": "system", "system": system_name, "message": f"❌ ERRO NA MATRIZ: {str(e)[:50]}"
         })
 
-@app.on_event("startup")
-async def startup_event():
-    initialize_iags()
+# O evento startup foi migrado para o lifespan acima
 
 @app.get("/")
 async def get_index():
