@@ -62,14 +62,14 @@ async def lifespan(app: FastAPI):
     web_researcher = WebResearcher()
     await web_researcher.initialize()
     initialize_iags()
-    print("✅ Sistema inicializado com WebResearcher")
+    print("[SERVER] Sistema inicializado com WebResearcher")
     
     yield  # App rodando
     
     # Shutdown
     if web_researcher:
         await web_researcher.close()
-    print("🔌 Sistema finalizado")
+    print("[SERVER] Sistema finalizado")
 
 # Crie o app com lifespan
 app = FastAPI(title="Sistema Duplo - IAG com LLM", lifespan=lifespan)

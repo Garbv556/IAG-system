@@ -31,13 +31,13 @@ class WebResearcher:
                 follow_redirects=True,
                 headers=HEADERS
             )
-            logger.info("✅ WebResearcher inicializado")
+            logger.info("[WEB] WebResearcher inicializado")
     
     async def close(self):
         if self.http_client:
             await self.http_client.aclose()
             self.http_client = None
-            logger.info("🔌 WebResearcher fechado")
+            logger.info("[WEB] WebResearcher fechado")
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     async def learn_from_web(self, query: str, max_results: int = 3) -> str:
