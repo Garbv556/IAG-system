@@ -39,13 +39,8 @@ sys.path.insert(0, parent_dir)
 from core.iag_central import IAGCentral
 from core.refinement import RefinementEngine
 from core.web_researcher import WebResearcher
-from agents import (
-    LeaoAgent, TigreAgent, ElefanteAgent, HipoAgent, PolvoAgent,
-    LoboAgent, TubaraoAgent, OrcaAgent, RinoceronteAgent, FalcaoAgent,
-    CrocodiloAgent, CavaloAgent, GorilaAgent, OvelhaAgent, CarneiroAgent,
-    CoelhoAgent, AlceAgent, MarlinAgent, UrsoPardoAgent, LeopardoAgent,
-    CanguruAgent, BisaoAgent
-)
+from core.animal_agents import AGENT_CLASSES as DEFY_AGENTS
+from agents import ALL_AGENTS as LEGACY_AGENTS
 from agents_pokemon import (
     PyroarAgent, IncineroarAgent, CopperajahAgent, HippowdonAgent, OctilleryAgent,
     LycanrocAgent, GarchompAgent, KyogreAgent, RhyperiorAgent, TalonflameAgent,
@@ -122,22 +117,23 @@ def initialize_iags():
     
     saved_agents = load_power_states()
     
-    # Animais
+    # Animais (Córtex Selvagem) - Carregando os 22 animais únicos
     iag_animals = IAGCentral()
     refinement_animals = RefinementEngine('animals')
-    agents_anim = [
-        LeaoAgent("leao"), TigreAgent("tigre"), ElefanteAgent("elefante"), HipoAgent("hipopotamo"),
-        PolvoAgent("polvo"), LoboAgent("lobo"), TubaraoAgent("tubarao"), OrcaAgent("orca"),
-        RinoceronteAgent("rinoceronte"), FalcaoAgent("falcao"), CrocodiloAgent("crocodilo"), CavaloAgent("cavalo"),
-        GorilaAgent("gorila"), OvelhaAgent("ovelha"), CarneiroAgent("carneiro"), CoelhoAgent("coelho"),
-        AlceAgent("alce"), MarlinAgent("marlin"), UrsoPardoAgent("urso_pardo"), LeopardoAgent("leopardo"),
-        CanguruAgent("canguru"), BisaoAgent("bisao")
-    ]
-    for agent in agents_anim:
-        # Aplicar estado salvo
-        if agent.agent_id in saved_agents:
-            agent.active = saved_agents[agent.agent_id]
-        iag_animals.register_agent(agent.agent_id, agent)
+    
+    for aid, agent_cls in LEGACY_AGENTS.items():
+        # 1. Instanciar Agente (Usando as classes originais para manter nomes/ícones)
+        agent = agent_cls(aid)
+        
+        # 2. Se houver uma classe de precisão (DEFY) para este animal, poderíamos mesclar,
+        # mas para garantir os ícones/nomes do frontend, mantemos a classe original
+        # e apenas injetamos a lógica se necessário.
+        
+        # 3. Aplicar estado salvo (ON/OFF)
+        if aid in saved_agents:
+            agent.active = saved_agents[aid]
+            
+        iag_animals.register_agent(aid, agent)
         
     # Pokemons
     iag_pokemons = IAGCentral()
@@ -189,11 +185,11 @@ async def call_llm(provider: str, api_key: str, prompt: str) -> str:
             return f"[ERRO_GEMINI: {str(e)[:100]}]"
     return ""
 
-async def perform_web_research(query: str) -> str:
-    """Invoca o motor central de pesquisa web (ASSÍNCRONO)."""
+async def perform_web_research(query: str, api_keys: dict = None) -> str:
+    """Invoca o motor central de pesquisa web (LangChain ReAct)."""
     if not web_researcher:
         return "⚠️ Motor de pesquisa offline."
-    return await web_researcher.learn_from_web(query)
+    return await web_researcher.learn_from_web(query, api_keys=api_keys)
 
 async def simulate_learning_and_conversation(task_name: str, raw_content: str, api_keys: dict, iag_instance, system_name: str):
     """Motor Principal da Matrix: Loop Perpétuo de Especialização Suprema"""
@@ -222,8 +218,8 @@ async def simulate_learning_and_conversation(task_name: str, raw_content: str, a
                 "timestamp": datetime.now().isoformat()
             })
             
-            search_query = task_name if cycle_num == 1 else f"{task_name} advanced details"
-            web_content = await perform_web_research(search_query)
+            search_query = task_name if cycle_num == 1 else f"{task_name} advanced research"
+            web_content = await perform_web_research(search_query, api_keys=api_keys)
             if web_content:
                 text_content = f"{text_content}\n\n{web_content}"
                 count_res = web_content.count("ORIGEM:")
